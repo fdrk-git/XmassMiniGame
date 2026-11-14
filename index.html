@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Portfolio</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: #0b1a14; color: #fff; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; }
+  #view { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  video { display: none; }
+  #slots { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center;
+           font: 700 30px Georgia, serif; letter-spacing: 6px; text-shadow: 0 2px 8px #000; transition: font-size .8s; }
+  #slots b { color: #ffd76a; }
+  #slots i { opacity: .5; font-style: normal; }
+  .done #slots { font-size: 44px; top: 30%; animation: glow 1.5s infinite alternate; }
+  @keyframes glow { to { text-shadow: 0 0 24px #ffd76a, 0 0 48px #e33; } }
+  #panel { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); padding: 14px 16px;
+           background: rgba(120, 12, 30, .88); border: 2px solid #ffd76a; border-radius: 18px;
+           display: flex; align-items: center; gap: 14px; }
+  #hint { flex: 1; font-size: 18px; line-height: 1.35; }
+  #tip { display: block; margin-top: 6px; font-size: 12px; opacity: .75; }
+  #arrow { width: 64px; height: 64px; flex: none; transition: transform .15s linear; }
+  #pop { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
+         font: 700 200px Georgia, serif; color: #ffd76a; text-shadow: 0 0 40px #e33; opacity: 0; }
+  #pop.go { animation: pop 1.6s ease-out; }
+  @keyframes pop { 0% { opacity: 0; transform: scale(.2) rotate(-20deg); } 30% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.6); } }
+  #toast { position: fixed; top: 40%; left: 50%; transform: translateX(-50%); padding: 12px 18px; border-radius: 14px;
+           background: rgba(0, 0, 0, .8); font-size: 18px; white-space: nowrap; opacity: 0; transition: opacity .3s; }
+  #toast.on { opacity: 1; }
+  #start { position: fixed; inset: 0; display: grid; place-content: center; gap: 22px; padding: 28px; text-align: center;
+           background: radial-gradient(circle at 50% 30%, #1d5a3c, #0b1a14); }
+  #start h1 { font: 700 30px Georgia, serif; color: #ffd76a; }
+  #start p { font-size: 17px; line-height: 1.5; }
+  button { font: 700 20px inherit; padding: 14px 28px; border: 0; border-radius: 999px; background: #ffd76a; color: #5a0a18; }
+  [hidden] { display: none !important; }
+
+  /* setup / print mode */
+  .setup body, body.setup { overflow: auto; background: #fff; color: #000; padding: 20px; height: auto; }
+  #setup h2 { margin: 18px 0 8px; }
+  #heading { font: 700 64px monospace; }
+  #out { font: 14px monospace; white-space: pre-wrap; background: #eee; padding: 10px; margin-top: 10px; user-select: all; }
+  #cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  #cards div { border: 1px dashed #999; padding: 12px; text-align: center; break-inside: avoid; }
+  #cards svg { width: 100%; height: auto; }
+  @media print { .noprint { display: none; } }
+</style>
+</head>
+<body>
+
+<video id="video" playsinline muted></video>
+<canvas id="view"></canvas>
+<div id="slots"></div>
+<div id="panel" hidden>
+  <div id="hint"></div>
+  <svg id="arrow" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#0b1a14" stroke="#ffd76a" stroke-width="2"/><path d="M32 8 L46 40 L32 33 L18 40 Z" fill="#ffd76a"/></svg>
+</div>
+<div id="pop"></div>
+<div id="toast"></div>
+
+<div id="start">
+  <h1>🎄 Karácsonyi kincskeresés 🎄</h1>
+  <p>Kilenc betű rejtőzik a lakásban.<br>Keresd meg őket a kamerával – sorban!</p>
+  <p style="font-size:14px;opacity:.8">Engedélyezd a kamerát és a mozgásérzékelőt.</p>
+  <button id="go">Kezdjük! ✨</button>
+  <p id="err" style="color:#ff9c9c"></p>
+</div>
+
+<div id="setup" hidden>
+  <div class="noprint">
+    <h2>1. Record compass directions</h2>
+    <p>Open this page on the iPhone. Stand at the starting point, hold the phone <b>flat</b> with its top pointing
+       towards card 1, tap Record. Then stand at card 1 pointing at card 2, and so on. The 10th one is from card 9 to the gift.</p>
+    <button id="compassOn">Enable compass</button>
+    <div id="heading">–</div>
+    <button id="rec">Record</button> <button id="undo">Undo</button>
+    <div id="out"></div>
+    <p>Paste that line over <code>const BEARINGS</code> in index.html.</p>
+    <h2>2. Print the cards</h2>
+    <p>Print this page (the instructions above are left out). The small number is the order: 1 = M … 9 = S.</p>
+  </div>
+  <div id="cards"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+// ====================== CONFIG — edit these ======================
+const LETTERS = 'MERRYXMAS';   // card 1 = M ... card 9 = S; QR texts are mx1..mx9
+const GAP_AFTER = 5;           // space between MERRY and XMAS
+// HINTS[0] is shown at the start (leads to card 1), HINTS[n] after card n is found, HINTS[9] leads to the gift.
+const HINTS = [
+  '[1. TIPP – írd át: hol van az 1. kártya?]',
+  '[2. TIPP – írd át: hol van a 2. kártya?]',
+  '[3. TIPP – írd át: hol van a 3. kártya?]',
+  '[4. TIPP – írd át: hol van a 4. kártya?]',
+  '[5. TIPP – írd át: hol van az 5. kártya?]',
+  '[6. TIPP – írd át: hol van a 6. kártya?]',
+  '[7. TIPP – írd át: hol van a 7. kártya?]',
+  '[8. TIPP – írd át: hol van a 8. kártya?]',
+  '[9. TIPP – írd át: hol van a 9. kártya?]',
+  '[UTOLSÓ TIPP – írd át: hol van az ajándék?] 🎁',
+];
+// Compass direction (degrees) for each hint, recorded with ?setup. null = no arrow for that step.
+const BEARINGS = [null, null, null, null, null, null, null, null, null, null];
+// =================================================================
+
+const $ = id => document.getElementById(id);
+let found = 0, heading = null, lastSeen = null, toastTimer;
+
+function render() {
+  $('slots').innerHTML = [...LETTERS].map((c, i) =>
+    (i === GAP_AFTER ? '&nbsp;' : '') + (i < found ? `<b>${c}</b>` : '<i>•</i>')).join('');
+  $('hint').innerHTML = (found === LETTERS.length ? 'Megvan mind! ' : '') + HINTS[found] +
+    (BEARINGS[found] != null ? '<small id="tip">Az iránytűhöz tartsd vízszintesen a telefont</small>' : '');
+  document.body.classList.toggle('done', found === LETTERS.length);
+  turnArrow();
+}
+
+function turnArrow() {
+  const b = BEARINGS[found];
+  $('arrow').hidden = b == null || heading == null;
+  if (!$('arrow').hidden) $('arrow').style.transform = `rotate(${b - heading}deg)`;
+}
+
+function toast(msg) {
+  $('toast').textContent = msg;
+  $('toast').classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('toast').classList.remove('on'), 2000);
+}
+
+// Returns the card number for one of our QR texts, else 0. Advances the game when it is the next card.
+function onCode(text) {
+  const n = +(/^mx([1-9])$/.exec(text) || [])[1] || 0;
+  if (n === found + 1) {
+    found++;
+    $('pop').textContent = LETTERS[n - 1];
+    $('pop').classList.remove('go'); void $('pop').offsetWidth; $('pop').classList.add('go');
+    navigator.vibrate?.(200);
+    render();
+  } else if (n > found + 1) toast('Még nem! Ez egy későbbi betű 😉');
+  return n;   // already-found cards: nothing happens
+}
+
+function scan() {
+  const v = $('video'), c = $('view'), ctx = c.getContext('2d', { willReadFrequently: true });
+  if (v.videoWidth) {
+    if (c.width !== v.videoWidth) { c.width = v.videoWidth; c.height = v.videoHeight; }
+    ctx.drawImage(v, 0, 0);
+    const qr = jsQR(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height, { inversionAttempts: 'dontInvert' });
+    const n = qr && onCode(qr.data);
+    if (n) lastSeen = { n, loc: qr.location, t: performance.now() };
+    // keep covering for a moment after a missed frame so the QR never flashes through
+    if (lastSeen && performance.now() - lastSeen.t < 500) cover(ctx, lastSeen);
+  }
+  requestAnimationFrame(scan);
+}
+
+function cover(ctx, { n, loc }) {
+  const p = [loc.topLeftCorner, loc.topRightCorner, loc.bottomRightCorner, loc.bottomLeftCorner];
+  const cx = (p[0].x + p[2].x) / 2, cy = (p[0].y + p[2].y) / 2;
+  const size = Math.hypot(p[0].x - p[2].x, p[0].y - p[2].y) / Math.SQRT2;
+  ctx.beginPath();
+  p.forEach((q, i) => ctx[i ? 'lineTo' : 'moveTo'](cx + (q.x - cx) * 1.35, cy + (q.y - cy) * 1.35));
+  ctx.closePath();
+  ctx.fillStyle = '#8c0f24'; ctx.fill();
+  ctx.lineWidth = size * .06; ctx.strokeStyle = '#ffd76a'; ctx.stroke();
+  ctx.fillStyle = '#ffd76a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = `700 ${size * .8}px Georgia, serif`;
+  ctx.fillText(n <= found ? LETTERS[n - 1] : '🎁', cx, cy);
+}
+
+function askCompass() {
+  // iOS: must be called directly inside the tap, before any await
+  const p = window.DeviceOrientationEvent?.requestPermission?.().catch(() => {});
+  addEventListener('deviceorientation', e => {
+    if (e.webkitCompassHeading == null) return;   // iOS-only value; elsewhere the arrow stays hidden
+    heading = e.webkitCompassHeading;
+    setup ? $('heading').textContent = Math.round(heading) + '°' : turnArrow();
+  });
+  return p;
+}
+
+$('go').onclick = async () => {
+  const motion = askCompass();
+  try {
+    $('video').srcObject = await navigator.mediaDevices.getUserMedia(
+      { video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false });
+    await $('video').play();
+  } catch (e) {
+    $('err').textContent = 'Nem sikerült elindítani a kamerát. Engedélyezd, majd töltsd újra az oldalt.';
+    return;
+  }
+  await motion;
+  $('start').hidden = true;
+  $('panel').hidden = false;
+  scan();
+};
+
+// ---------------- setup / print mode: open index.html?setup ----------------
+const setup = location.search.includes('setup');
+if (setup) {
+  document.body.className = 'setup';
+  for (const id of ['start', 'view', 'slots']) $(id).hidden = true;
+  $('setup').hidden = false;
+  const rec = [];
+  const show = () => $('out').textContent = `const BEARINGS = [${rec.join(', ')}];   // ${rec.length}/10 recorded`;
+  $('compassOn').onclick = askCompass;
+  $('rec').onclick = () => { if (heading != null && rec.length < 10) rec.push(Math.round(heading)); show(); };
+  $('undo').onclick = () => { rec.pop(); show(); };
+  show();
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+  s.onload = () => $('cards').innerHTML = [...LETTERS].map((_, i) => {
+    const q = qrcode(0, 'M'); q.addData('mx' + (i + 1)); q.make();
+    return `<div>${q.createSvgTag({ scalable: true, margin: 4 })}${i + 1}</div>`;
+  }).join('');
+  document.body.append(s);
+} else render();
+
+// ---------------- self-check: open index.html?test and read the console ----------------
+if (location.search.includes('test')) {
+  console.assert(HINTS.length === LETTERS.length + 1 && BEARINGS.length === HINTS.length, 'config lengths');
+  onCode('hello');  console.assert(found === 0, 'foreign QR ignored');
+  onCode('mx3');    console.assert(found === 0, 'future card refused');
+  onCode('mx1'); onCode('mx1'); console.assert(found === 1, 'repeat ignored');
+  for (let i = 2; i <= 9; i++) onCode('mx' + i);
+  console.assert(found === 9 && document.body.classList.contains('done'), 'finale reached');
+  console.log('self-check finished, found =', found);
+}
+</script>
+</body>
+</html>
