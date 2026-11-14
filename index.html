@@ -10,6 +10,12 @@
   html, body { height: 100%; background: #0b1a14; color: #fff; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; }
   #view { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   video { display: none; }
+  /* the tile that hides a QR code: a 300px box that showTile() maps onto the card in perspective */
+  #tile { position: fixed; left: 0; top: 0; width: 300px; height: 300px; transform-origin: 0 0; pointer-events: none; will-change: transform; }
+  #tile div { position: absolute; inset: -52px; display: grid; place-items: center; border: 18px solid #ffd76a;
+              background: radial-gradient(circle at 50% 25%, #c9213f, #6a0919); font: 700 240px Georgia, serif; color: #ffe596;
+              text-shadow: 2px 3px 0 #d8a632, 4px 6px 0 #c08e22, 6px 9px 0 #a57615, 8px 12px 0 #88600c, 10px 15px 0 #6e4c06, 14px 22px 18px rgba(0, 0, 0, .6); }
+  #tile div.gift { text-shadow: none; }
   #slots { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center;
            font: 700 30px Georgia, serif; letter-spacing: 6px; text-shadow: 0 2px 8px #000; transition: font-size .8s; }
   /* 3D letters: stacked darker copies underneath read as the side of a thick gold letter */
@@ -66,6 +72,7 @@
 
 <video id="video" playsinline muted></video>
 <canvas id="view"></canvas>
+<div id="tile" hidden><div></div></div>
 <div id="slots"></div>
 <div id="panel" hidden>
   <div id="hint"></div>
@@ -102,7 +109,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.0.6';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.0.7';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -277,35 +284,45 @@ function scan() {
   if (v.videoWidth) {
     if (c.width !== v.videoWidth) { c.width = v.videoWidth; c.height = v.videoHeight; }
     ctx.drawImage(v, 0, 0);
-    const tile = step(v, c.width, c.height);
-    if (tile) cover(ctx, tile);
+    showTile(step(v, c.width, c.height), c.width, c.height);
   }
   requestAnimationFrame(scan);
 }
 
-function cover(ctx, { n, loc }) {
-  // Draw in the card's own coordinates: the code is a 100x100 square whose axes run along its top and left edges.
-  // Only three corners are used; the fourth (bottom right) is the reader's least reliable guess and used to
-  // pull the tile out of shape. Tile and letter now tilt together with the card, like a sticker on it.
-  const o = loc.topLeftCorner, u = loc.topRightCorner, v = loc.bottomLeftCorner;
-  ctx.save();
-  ctx.transform((u.x - o.x) / 100, (u.y - o.y) / 100, (v.x - o.x) / 100, (v.y - o.y) / 100, o.x, o.y);
-  const cx = 50, cy = 50, size = 100;
-  ctx.beginPath(); ctx.rect(-17.5, -17.5, 135, 135);
-  const tile = ctx.createRadialGradient(cx, cy - size * .3, size * .1, cx, cy, size);
-  tile.addColorStop(0, '#c9213f'); tile.addColorStop(1, '#6a0919');
-  ctx.fillStyle = tile; ctx.fill();
-  ctx.lineWidth = size * .06; ctx.strokeStyle = '#ffd76a'; ctx.stroke();
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.font = `700 ${size * .8}px Georgia, serif`;
-  if (n > found) { ctx.fillText('🎁', cx, cy); return void ctx.restore(); }
-  // 3D letter: darker copies stepped down-right form the side, a light-to-gold gradient forms the face
-  const L = LETTERS[n - 1], d = size * .012;
-  for (let i = 7; i > 0; i--) { ctx.fillStyle = i > 4 ? '#6e4c06' : '#a87a14'; ctx.fillText(L, cx + i * d * .5, cy + i * d); }
-  const face = ctx.createLinearGradient(0, cy - size * .35, 0, cy + size * .35);
-  face.addColorStop(0, '#fff6d0'); face.addColorStop(.5, '#ffd76a'); face.addColorStop(1, '#e2a82c');
-  ctx.fillStyle = face; ctx.fillText(L, cx, cy);
-  ctx.restore();
+// CSS matrix that maps the 300x300 px #tile box onto four screen points (top-left, top-right, bottom-right,
+// bottom-left). Unlike a plain canvas transform this is a true perspective mapping, so the tile lies flat on the card.
+function quadMatrix([p0, p1, p2, p3]) {
+  const dx1 = p1.x - p2.x, dy1 = p1.y - p2.y, dx2 = p3.x - p2.x, dy2 = p3.y - p2.y;
+  const sx = p0.x - p1.x + p2.x - p3.x, sy = p0.y - p1.y + p2.y - p3.y, det = dx1 * dy2 - dx2 * dy1;
+  const g = (sx * dy2 - dx2 * sy) / det, h = (dx1 * sy - sx * dy1) / det;
+  const m = [p1.x - p0.x + g * p1.x, p1.y - p0.y + g * p1.y, 0, g,
+             p3.x - p0.x + h * p3.x, p3.y - p0.y + h * p3.y, 0, h].map(v => v / 300);
+  return `matrix3d(${m}, 0, 0, 1, 0, ${p0.x}, ${p0.y}, 0, 1)`;
+}
+
+let shown = null;   // the tile's corners as drawn: the measured corners, smoothed over time
+
+// Places the #tile element over the card (or hides it). W, H: size of the camera picture the corners refer to.
+function showTile(tile, W, H) {
+  const el = $('tile'), face = el.firstElementChild;
+  if (!tile) { el.hidden = true; shown = null; return; }
+  const target = [tile.loc.topLeftCorner, tile.loc.topRightCorner, tile.loc.bottomRightCorner, tile.loc.bottomLeftCorner];
+  if (!shown || shown.n !== tile.n) shown = { n: tile.n, p: target.map(q => ({ x: q.x, y: q.y })) };
+  else {
+    // The reader's corners wobble a little every frame. Small changes are blended in slowly (steady tile),
+    // big ones quickly (no trailing behind a moving card).
+    const size = Math.hypot(target[1].x - target[0].x, target[1].y - target[0].y);
+    const move = Math.max(...target.map((q, i) => Math.hypot(q.x - shown.p[i].x, q.y - shown.p[i].y)));
+    const a = Math.min(1, Math.max(.15, move / size * 4));
+    shown.p.forEach((q, i) => { q.x += (target[i].x - q.x) * a; q.y += (target[i].y - q.y) * a; });
+  }
+  // camera picture -> screen: the canvas is shown with object-fit: cover
+  const r = $('view').getBoundingClientRect(), s = Math.max(r.width / W, r.height / H);
+  const ox = r.left + (r.width - W * s) / 2, oy = r.top + (r.height - H * s) / 2;
+  el.style.transform = quadMatrix(shown.p.map(q => ({ x: q.x * s + ox, y: q.y * s + oy })));
+  const text = tile.n <= found ? LETTERS[tile.n - 1] : '🎁';
+  if (face.textContent !== text) { face.textContent = text; face.classList.toggle('gift', tile.n > found); }
+  el.hidden = false;
 }
 
 function askCompass() {
@@ -376,6 +393,11 @@ if (setup) {
 // ---------------- self-check: open index.html?test and read the console ----------------
 if (location.search.includes('test')) {
   console.assert(HINTS.length === LETTERS.length + 1 && BEARINGS.length === HINTS.length, 'config lengths');
+  const quad = [{ x: 40, y: 60 }, { x: 310, y: 90 }, { x: 280, y: 400 }, { x: 20, y: 330 }], mat = new DOMMatrix(quadMatrix(quad));
+  [[0, 0], [300, 0], [300, 300], [0, 300]].forEach(([x, y], i) => {
+    const q = mat.transformPoint({ x, y });
+    console.assert(Math.hypot(q.x / q.w - quad[i].x, q.y / q.w - quad[i].y) < .01, 'tile corner ' + i + ' lands on the card corner');
+  });
   onCode('hello');  console.assert(found === 0, 'foreign QR ignored');
   onCode('mx3');    console.assert(found === 0, 'future card refused');
   onCode('mx1'); onCode('mx1'); console.assert(found === 1, 'repeat ignored');
