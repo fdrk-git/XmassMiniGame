@@ -14,7 +14,7 @@ The game text is in Hungarian. Progress is not saved: reloading restarts the hun
 
 ## Setting it up
 
-1. **Print the cards.** Open `index.html?setup` on a computer and print. The small number on each card is its order (1 = M … 9 = S). To test without printing, **Open image** under a card shows that one code large in a new tab, ready to scan from the screen.
+1. **Print the cards.** Open `index.html?setup` on a computer and print. The small number on each card is its order (1 = M … 9 = S). To test without printing, **Full screen** under a card shows that one code large, ready to scan from the screen (tap to close), and **Download** saves it as `card-N.png`.
 2. **Write the hints.** Edit the ten entries of `HINTS` at the top of the script in `index.html`. The first leads to card 1, the last to the gift.
 3. **Record the directions.** With the cards hidden, open `?setup` on the iPhone. At each spot hold the phone flat, point it at the next card and tap **Record**. Paste the resulting line over `const BEARINGS`. Steps left as `null` show no arrow.
 
@@ -34,5 +34,7 @@ python3 -m http.server 8123
 Then open `http://localhost:8123`. Opening `http://localhost:8123/?test` runs a small self-check of the game logic; results are in the browser console.
 
 ## Versions
+
+The page checks the server for a newer version each time it opens and reloads itself if it finds one, so a new deploy shows up without clearing site data. `const VERSION` in `index.html` must be bumped with every release for this to work; the setup page shows the loaded version.
 
 Versions are `vX.Y.Z`, where each part runs 0–9 and carries into the next at 10 (v0.0.9 is followed by v0.1.0). Every version is published as a pre-release until the game is finished.

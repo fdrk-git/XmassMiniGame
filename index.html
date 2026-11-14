@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Portfolio</title>
+<title>Karácsonyi kincskeresés ✨</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
 <style>
   * { box-sizing: border-box; margin: 0; }
   html, body { height: 100%; background: #0b1a14; color: #fff; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; }
@@ -50,12 +51,15 @@
   #setup h2 { margin: 18px 0 8px; }
   #heading { font: 700 64px monospace; }
   #out { font: 14px monospace; white-space: pre-wrap; background: #eee; padding: 10px; margin-top: 10px; user-select: all; }
-  #cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  #cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; }
+  @media print { #cards { grid-template-columns: repeat(3, 1fr); } }
   #cards div { border: 1px dashed #999; padding: 12px; text-align: center; break-inside: avoid; }
-  #cards svg { width: 100%; height: auto; }
-  .open { display: block; margin: 8px auto 0; padding: 6px 12px; width: fit-content; border-radius: 999px;
-          background: #ffd76a; color: #5a0a18; font-weight: 700; text-decoration: none; }
-  @media print { .noprint { display: none; } }
+  #cards img { display: block; width: 100%; image-rendering: pixelated; }
+  .btn { display: inline-block; margin: 8px 3px 0; padding: 6px 12px; border-radius: 999px; font: 700 14px inherit;
+         background: #ffd76a; color: #5a0a18; text-decoration: none; }
+  #full { position: fixed; inset: 0; z-index: 9; background: #fff; display: grid; place-items: center; }
+  #full img { width: min(100vw, 100vh); image-rendering: pixelated; }
+  @media print { .noprint { display: none !important; } }
 </style>
 </head>
 <body>
@@ -90,12 +94,29 @@
     <p>Paste that line over <code>const BEARINGS</code> in index.html.</p>
     <h2>2. Print the cards</h2>
     <p>Print this page (the instructions above are left out). The small number is the order: 1 = M … 9 = S.</p>
+    <p id="ver" style="opacity:.6;font-size:13px"></p>
   </div>
   <div id="cards"></div>
+  <div id="full" class="noprint" hidden><img alt=""></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
+const VERSION = '0.0.5';   // bump with every release; selfUpdate() below compares it with the server's copy
+
+// A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
+// differs, reload under a new address (?v=...) that no saved copy exists for.
+function selfUpdate() {
+  fetch(location.pathname + '?fresh=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(t => {
+    const v = (/const VERSION = '([\d.]+)'/.exec(t) || [])[1], q = new URLSearchParams(location.search);
+    if (v && v !== VERSION && q.get('v') !== v) {   // the q.get check stops a reload loop
+      q.set('v', v);
+      location.replace(location.pathname + '?' + q);
+    }
+  }).catch(() => {});   // offline or blocked: keep the copy we have
+}
+selfUpdate();
+
 // ====================== CONFIG — edit these ======================
 const LETTERS = 'MERRYXMAS';   // card 1 = M ... card 9 = S; QR texts are mx1..mx9
 const GAP_AFTER = 5;           // space between MERRY and XMAS
@@ -327,11 +348,24 @@ if (setup) {
   s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
   s.onload = () => $('cards').innerHTML = [...LETTERS].map((_, i) => {
     const q = qrcode(0, 'M'); q.addData('mx' + (i + 1)); q.make();
-    const svg = q.createSvgTag({ scalable: true, margin: 4 });
-    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
-    return `<div>${svg}${i + 1}<a class="noprint open" target="_blank" href="${url}">Open image</a></div>`;
+    // one PNG per card (at least 1024 px, 4-cell white border) serves the printed card, the download and full screen
+    const n = q.getModuleCount() + 8, cell = Math.ceil(1024 / n), c = document.createElement('canvas'), x = c.getContext('2d');
+    c.width = c.height = n * cell;
+    x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+    x.translate(4 * cell, 4 * cell); q.renderTo2dContext(x, cell);
+    const png = c.toDataURL('image/png');
+    return `<div><img src="${png}" alt="QR ${i + 1}">${i + 1}<span class="noprint"><br>` +
+      `<a class="btn" download="card-${i + 1}.png" href="${png}">Download</a><button class="btn full">Full screen</button></span></div>`;
   }).join('');
   document.body.append(s);
+  $('ver').textContent = 'Version ' + VERSION;
+  $('cards').onclick = e => {
+    if (!e.target.classList.contains('full')) return;
+    $('full').firstElementChild.src = e.target.closest('div').querySelector('img').src;
+    $('full').hidden = false;
+  };
+  $('full').onclick = () => $('full').hidden = true;
+  addEventListener('keydown', e => { if (e.key === 'Escape') $('full').hidden = true; });
 } else render();
 
 // ---------------- self-check: open index.html?test and read the console ----------------
