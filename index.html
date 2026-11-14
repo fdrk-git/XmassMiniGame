@@ -102,7 +102,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.0.5';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.0.6';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -284,25 +284,28 @@ function scan() {
 }
 
 function cover(ctx, { n, loc }) {
-  const p = [loc.topLeftCorner, loc.topRightCorner, loc.bottomRightCorner, loc.bottomLeftCorner];
-  const cx = (p[0].x + p[2].x) / 2, cy = (p[0].y + p[2].y) / 2;
-  const size = Math.hypot(p[0].x - p[2].x, p[0].y - p[2].y) / Math.SQRT2;
-  ctx.beginPath();
-  p.forEach((q, i) => ctx[i ? 'lineTo' : 'moveTo'](cx + (q.x - cx) * 1.35, cy + (q.y - cy) * 1.35));
-  ctx.closePath();
+  // Draw in the card's own coordinates: the code is a 100x100 square whose axes run along its top and left edges.
+  // Only three corners are used; the fourth (bottom right) is the reader's least reliable guess and used to
+  // pull the tile out of shape. Tile and letter now tilt together with the card, like a sticker on it.
+  const o = loc.topLeftCorner, u = loc.topRightCorner, v = loc.bottomLeftCorner;
+  ctx.save();
+  ctx.transform((u.x - o.x) / 100, (u.y - o.y) / 100, (v.x - o.x) / 100, (v.y - o.y) / 100, o.x, o.y);
+  const cx = 50, cy = 50, size = 100;
+  ctx.beginPath(); ctx.rect(-17.5, -17.5, 135, 135);
   const tile = ctx.createRadialGradient(cx, cy - size * .3, size * .1, cx, cy, size);
   tile.addColorStop(0, '#c9213f'); tile.addColorStop(1, '#6a0919');
   ctx.fillStyle = tile; ctx.fill();
   ctx.lineWidth = size * .06; ctx.strokeStyle = '#ffd76a'; ctx.stroke();
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `700 ${size * .8}px Georgia, serif`;
-  if (n > found) return void ctx.fillText('🎁', cx, cy);
+  if (n > found) { ctx.fillText('🎁', cx, cy); return void ctx.restore(); }
   // 3D letter: darker copies stepped down-right form the side, a light-to-gold gradient forms the face
   const L = LETTERS[n - 1], d = size * .012;
   for (let i = 7; i > 0; i--) { ctx.fillStyle = i > 4 ? '#6e4c06' : '#a87a14'; ctx.fillText(L, cx + i * d * .5, cy + i * d); }
   const face = ctx.createLinearGradient(0, cy - size * .35, 0, cy + size * .35);
   face.addColorStop(0, '#fff6d0'); face.addColorStop(.5, '#ffd76a'); face.addColorStop(1, '#e2a82c');
   ctx.fillStyle = face; ctx.fillText(L, cx, cy);
+  ctx.restore();
 }
 
 function askCompass() {
@@ -347,7 +350,9 @@ if (setup) {
   const s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
   s.onload = () => $('cards').innerHTML = [...LETTERS].map((_, i) => {
-    const q = qrcode(0, 'M'); q.addData('mx' + (i + 1)); q.make();
+    // Size 2 on purpose: the smallest size (1) has no alignment mark, and without it the reader fails on tilted
+    // cards (simulated: size 1 unreadable at 20°, size 2 readable to 55°). 'H' = most damage tolerance.
+    const q = qrcode(2, 'H'); q.addData('mx' + (i + 1)); q.make();
     // one PNG per card (at least 1024 px, 4-cell white border) serves the printed card, the download and full screen
     const n = q.getModuleCount() + 8, cell = Math.ceil(1024 / n), c = document.createElement('canvas'), x = c.getContext('2d');
     c.width = c.height = n * cell;

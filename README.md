@@ -14,7 +14,7 @@ The game text is in Hungarian. Progress is not saved: reloading restarts the hun
 
 ## Setting it up
 
-1. **Print the cards.** Open `index.html?setup` on a computer and print. The small number on each card is its order (1 = M … 9 = S). To test without printing, **Full screen** under a card shows that one code large, ready to scan from the screen (tap to close), and **Download** saves it as `card-N.png`.
+1. **Print the cards.** Open `index.html?setup` on a computer and print. Cards printed before v0.0.6 still work but scan poorly at an angle; reprint them. The small number on each card is its order (1 = M … 9 = S). To test without printing, **Full screen** under a card shows that one code large, ready to scan from the screen (tap to close), and **Download** saves it as `card-N.png`.
 2. **Write the hints.** Edit the ten entries of `HINTS` at the top of the script in `index.html`. The first leads to card 1, the last to the gift.
 3. **Record the directions.** With the cards hidden, open `?setup` on the iPhone. At each spot hold the phone flat, point it at the next card and tap **Record**. Paste the resulting line over `const BEARINGS`. Steps left as `null` show no arrow.
 
