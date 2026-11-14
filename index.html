@@ -10,21 +10,37 @@
   html, body { height: 100%; background: #0b1a14; color: #fff; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; }
   #view { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   video { display: none; }
-  /* What hides a QR code: a 300px box that showTile() maps onto the card in 3D. On it lie a round plinth and a
-     soft shadow, and a statue (letter or gift) stands upright on it. */
-  #tile, #tile .statue, #tile .rise { transform-style: preserve-3d; }
+  /* What hides a QR code: a 300px box that showTile() maps onto the card in 3D. On it: a shadow on the floor, a
+     stepped round plinth, and (in .turn, which faces the camera) a contact shadow and the upright statue. */
+  #tile, #tile .plinth, #tile .turn, #tile .stand, #tile .rise { transform-style: preserve-3d; }
   #tile { position: fixed; left: 0; top: 0; width: 300px; height: 300px; transform-origin: 0 0; pointer-events: none; }
-  #tile .base { position: absolute; inset: -70px; border-radius: 50%; border: 10px solid #ffd76a;
-                background: radial-gradient(circle at 50% 40%, #b01c36, #5a0715 72%);
-                box-shadow: inset 0 0 0 8px #5a0715, inset 0 0 0 12px #e3b23c, inset 0 0 70px rgba(0, 0, 0, .6); }
-  #tile .shade { position: absolute; left: 20px; top: 20px; width: 260px; height: 260px; border-radius: 50%;
-                 background: radial-gradient(closest-side, rgba(0, 0, 0, .6), transparent); }
-  #tile .statue, #tile .rise { position: absolute; left: 0; top: 0; width: 0; height: 0; transform-origin: 0 0; }
+  #tile .floor { position: absolute; left: -150px; top: -150px; width: 600px; height: 600px; border-radius: 50%;
+                 background: radial-gradient(closest-side, rgba(0, 0, 0, .6) 72%, transparent); }
+  #tile .plinth, #tile .turn, #tile .stand, #tile .rise { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+  #tile .plinth { left: 150px; top: 150px; }
+  #tile .plinth i { position: absolute; border-radius: 50%; }
+  #tile .plinth svg { position: absolute; left: -220px; top: -220px; width: 440px; height: 440px; transform: translateZ(-40px); }
+  #tile .contact { position: absolute; left: -150px; top: -42px; width: 300px; height: 84px; border-radius: 50%;
+                   background: radial-gradient(closest-side, rgba(0, 0, 0, .75), transparent); }
+  #tile .stand { transform: rotateX(90deg); }
   #tile .rise { animation: rise .7s cubic-bezier(.2, 1.4, .4, 1) both; }
   @keyframes rise { from { transform: scale(0); } }
-  #tile span { position: absolute; left: 0; bottom: -54px; font: 700 360px/1 Georgia, serif; white-space: nowrap; transform: translateX(-50%); }
-  #tile span.front { background: linear-gradient(#fff6d0, #ffd76a 45%, #d99f25); -webkit-background-clip: text; background-clip: text;
-                     color: transparent !important; }
+  #tile span { position: absolute; left: 0; bottom: -54px; font: 700 360px/1 Georgia, serif; white-space: nowrap; }
+  #tile .edge { color: #fff8dc; transform: translate(calc(-50% - 3px), -3px) translateZ(-38px); }
+  #tile .front { transform: translateX(-50%) translateZ(-40px); color: transparent; -webkit-background-clip: text; background-clip: text;
+                 background-image: linear-gradient(115deg, #e9b63e, #ffe7a0 20%, #d39a22 42%, #fffbe6 50%, #d39a22 58%, #ffd76a 80%, #c58c1c);
+                 background-size: 300% 100%; animation: sheen 5s ease-in-out infinite; }
+  @keyframes sheen { from { background-position: 100% 0; } to { background-position: 0 0; } }
+  #tile b { position: absolute; font: 400 64px serif; color: #fffbe6; text-shadow: 0 0 14px #ffd76a; animation: twinkle 2.6s infinite both; }
+  @keyframes twinkle { 0%, 100% { opacity: 0; transform: translateZ(-70px) scale(.2); } 50% { opacity: 1; transform: translateZ(-70px) scale(1); } }
+  #tile .box { position: absolute; left: -95px; bottom: 0; width: 190px; height: 160px; box-shadow: inset 0 0 34px rgba(0, 0, 0, .4);
+               background: linear-gradient(90deg, transparent 38%, #b98a1c 38%, #ffe08a 50%, #b98a1c 62%, transparent 62%), linear-gradient(#cf2444, #7a0d22); }
+  #tile .lid { height: 190px; bottom: 65px; transform: rotateX(90deg);
+               background: linear-gradient(90deg, transparent 38%, #e3b23c 38% 62%, transparent 62%),
+                           linear-gradient(transparent 38%, #e3b23c 38% 62%, transparent 62%), #d92a4b; }
+  #tile u { position: absolute; bottom: 152px; width: 84px; height: 60px; border: 15px solid #ffd76a; border-radius: 50%;
+            box-shadow: inset 0 0 8px #8a6209, 0 0 0 2px #b98a1c; }
+  #tile .knot { left: -17px; bottom: 150px; width: 34px; height: 34px; border-width: 17px; background: #ffd76a; }
   #slots { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center;
            font: 700 30px Georgia, serif; letter-spacing: 6px; text-shadow: 0 2px 8px #000; transition: font-size .8s; }
   /* 3D letters: stacked darker copies underneath read as the side of a thick gold letter */
@@ -81,7 +97,7 @@
 
 <video id="video" playsinline muted></video>
 <canvas id="view"></canvas>
-<div id="tile" hidden><div class="base"></div><div class="shade"></div><div class="statue"></div></div>
+<div id="tile" hidden><div class="floor"></div><div class="plinth"></div><div class="turn"><div class="contact"></div><div class="stand"></div></div></div>
 <div id="slots"></div>
 <div id="panel" hidden>
   <div id="hint"></div>
@@ -118,7 +134,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.0.8';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.0.9';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -302,70 +318,134 @@ function scan() {
 // camera). It only affects how upright the statue stands; if statues lean, tune this number.
 const FOCAL = .8;
 
+// How fast a smoothed direction moves toward its newly measured value, given how far apart they are (radians).
+// Differences inside `band` (what measurement noise alone produces) are followed very slowly, so the statue stands
+// still; larger ones are real movement and are followed quickly.
+const ease = (err, band) => Math.min(1, Math.max(.02, (err - band) / .3));
+
 // Builds the CSS matrix that places the 300x300 px #tile box, and everything standing on it, onto the card.
 // p: the code's four corners on screen (top-left, top-right, bottom-right, bottom-left).
 // f: focal length in screen px; (cx, cy): centre of the camera picture on screen.
-// The flat part is exact: it passes through the four corners in true perspective. The upright direction is worked
-// out from how the square is distorted. Also returns `yaw`: the turn (radians) that makes a statue face the camera.
-function poseMatrix([p0, p1, p2, p3], f, cx, cy) {
+// prevDown: the previous frame's `down` (see below), or nothing for an unsmoothed answer.
+// The card is treated as a rigid square in space: its centre, size and turn come from well-measured screen
+// positions, its tilt from `down`. Also returns `yaw`: the turn (radians) that makes a statue face the camera.
+function poseMatrix([p0, p1, p2, p3], f, cx, cy, prevDown) {
+  // exact perspective mapping of the unit square onto the four corners: at(u, v) with u, v from 0 to 1
   const dx1 = p1.x - p2.x, dy1 = p1.y - p2.y, dx2 = p3.x - p2.x, dy2 = p3.y - p2.y;
   const sx = p0.x - p1.x + p2.x - p3.x, sy = p0.y - p1.y + p2.y - p3.y, det = dx1 * dy2 - dx2 * dy1;
   const g = (sx * dy2 - dx2 * sy) / det, h = (dx1 * sy - sx * dy1) / det;
-  // where one card px along x, and along y, goes on screen (third number: the perspective term)
-  const X = [p1.x - p0.x + g * p1.x, p1.y - p0.y + g * p1.y, g].map(v => v / 300);
-  const Y = [p3.x - p0.x + h * p3.x, p3.y - p0.y + h * p3.y, h].map(v => v / 300);
-  // the same directions as the camera sees them (focal length and picture centre undone)
+  const X = [p1.x - p0.x + g * p1.x, p1.y - p0.y + g * p1.y, g], Y = [p3.x - p0.x + h * p3.x, p3.y - p0.y + h * p3.y, h];
+  const at = (u, v) => { const w = g * u + h * v + 1; return [(X[0] * u + Y[0] * v + p0.x) / w, (X[1] * u + Y[1] * v + p0.y) / w]; };
+  const dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2], unit = u => u.map(v => v / Math.hypot(...u));
+  const cross = (u, v) => [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+  // `down`: straight into the card (statues stand the opposite way), from the square's edge directions as the
+  // camera sees them. It rests on the faint perspective terms g and h, so a fraction of a pixel of corner noise
+  // swings it by degrees, more so the smaller the card looks. That swing is what made statues jitter, so `down`
+  // is eased toward each new measurement, and g and h are used for nothing else that stands up.
   const cam = c => [(c[0] - cx * c[2]) / f, (c[1] - cy * c[2]) / f, c[2]];
-  const dot = (u, v) => u[0] * v[0] + u[1] * v[1] + u[2] * v[2];
-  const a = cam(X), b = cam(Y), o = cam([p0.x, p0.y, 1]), len = (Math.hypot(...a) + Math.hypot(...b)) / 2;
-  // "straight down into the card" is at right angles to both; statues stand along the opposite direction
-  const n = [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]].map(v => v / len);
-  const Z = [f * n[0] + cx * n[2], f * n[1] + cy * n[2], n[2]];
-  // the camera's position over the card, in card px, measured from the card's centre
-  const camX = -dot(a, o) / dot(a, a) - 150, camY = -dot(b, o) / dot(b, b) - 150;
+  let down = unit(cross(cam(X), cam(Y)));
+  const mid = at(.5, .5), mx = [0, 1].map(i => at(1, .5)[i] - at(0, .5)[i]), my = [0, 1].map(i => at(.5, 1)[i] - at(.5, 0)[i]);
+  // How far noise alone swings `down` (radians): grows with focal length over card size squared. The factor 2 was
+  // measured with simulated corners wobbling by up to 3 px (95% of swings fall inside); not yet tuned on a real camera.
+  const noise = 2 * f / (mx[0] * mx[0] + mx[1] * mx[1]);
+  if (prevDown) {
+    const k = ease(Math.acos(Math.min(1, dot(down, prevDown))), noise);
+    down = unit(prevDown.map((v, i) => v + (down[i] - v) * k));
+  }
+  // the card's centre lies along this line of sight, at depth 1
+  const ray = [(mid[0] - cx) / f, (mid[1] - cy) / f, 1];
+  // the direction in the card's plane that shows on screen as the offset m (length: what m spans at the centre)
+  const inPlane = m => { const z = -(m[0] * down[0] + m[1] * down[1]) / f / dot(ray, down); return [m[0] / f + ray[0] * z, m[1] / f + ray[1] * z, z]; };
+  const u = inPlane(mx), ax = unit(u), ay = cross(down, ax);
+  let len = (Math.hypot(...u) + Math.hypot(...inPlane(my))) / 600;   // card px in camera units
+  const seen = (x, y) => { const q = ray.map((v, i) => v + len * ((x - 150) * ax[i] + (y - 150) * ay[i])); return [f * q[0] / q[2], f * q[1] / q[2]]; };
+  for (let i = 0; i < 2; i++) {   // correct the size for perspective: make the card's two mid-lines as long as measured
+    const lx = Math.hypot(seen(300, 150)[0] - seen(0, 150)[0], seen(300, 150)[1] - seen(0, 150)[1]);
+    const ly = Math.hypot(seen(150, 300)[0] - seen(150, 0)[0], seen(150, 300)[1] - seen(150, 0)[1]);
+    len *= (Math.hypot(...mx) + Math.hypot(...my)) / (lx + ly);
+  }
+  const col = v => [f * v[0] + cx * v[2], f * v[1] + cy * v[2], v[2]];   // camera space -> screen, as a matrix column
+  const C = [ax, ay, down].map(v => col(v.map(w => w * len))), T = col(ray.map((v, i) => v - 150 * len * (ax[i] + ay[i])));
+  const camX = -dot(ray, ax) / len, camY = -dot(ray, ay) / len;   // the camera over the card, in card px from its centre
   return {
-    css: `matrix3d(${X[0]},${X[1]},0,${X[2]}, ${Y[0]},${Y[1]},0,${Y[2]}, ${Z[0]},${Z[1]},0,${Z[2]}, ${p0.x},${p0.y},1,1)`,
-    yaw: Math.atan2(-camX, camY), overhead: Math.hypot(camX, camY) < 100,
+    css: `matrix3d(${C.map(c => `${c[0]},${c[1]},0,${c[2]}`).join(', ')}, ${T[0]},${T[1]},1,${T[2]})`,
+    yaw: Math.atan2(-camX, camY), overhead: Math.hypot(camX, camY) < 100, down, noise,
   };
 }
 
-let shown = null;   // the tile as drawn: the measured corners smoothed over time, plus the statue's turn
+let shown = null;   // the tile as drawn: corners, upright direction and statue turn, each smoothed over time
 
 // Places the #tile element over the card (or hides it). W, H: size of the camera picture the corners refer to.
+// Per frame this only sets two transforms; everything else on the tile is static or animated by CSS.
 function showTile(tile, W, H) {
-  const el = $('tile'), statue = el.lastElementChild;
+  const el = $('tile'), turn = el.lastElementChild, stand = turn.lastElementChild;
   if (!tile) { el.hidden = true; shown = null; return; }
   const target = [tile.loc.topLeftCorner, tile.loc.topRightCorner, tile.loc.bottomRightCorner, tile.loc.bottomLeftCorner];
-  if (!shown || shown.n !== tile.n) shown = { n: tile.n, p: target.map(q => ({ x: q.x, y: q.y })), yaw: null };
+  if (!shown || shown.n !== tile.n) shown = { n: tile.n, p: target.map(q => ({ x: q.x, y: q.y })), yaw: null, down: null };
   else {
     // The reader's corners wobble a little every frame. Small changes are blended in slowly (steady tile),
     // big ones quickly (no trailing behind a moving card).
     const size = Math.hypot(target[1].x - target[0].x, target[1].y - target[0].y);
     const move = Math.max(...target.map((q, i) => Math.hypot(q.x - shown.p[i].x, q.y - shown.p[i].y)));
-    const a = Math.min(1, Math.max(.15, move / size * 4));
-    shown.p.forEach((q, i) => { q.x += (target[i].x - q.x) * a; q.y += (target[i].y - q.y) * a; });
+    const k = Math.min(1, Math.max(.15, move / size * 4));
+    shown.p.forEach((q, i) => { q.x += (target[i].x - q.x) * k; q.y += (target[i].y - q.y) * k; });
   }
   // camera picture -> screen: the canvas is shown with object-fit: cover
   const r = $('view').getBoundingClientRect(), s = Math.max(r.width / W, r.height / H);
   const ox = r.left + (r.width - W * s) / 2, oy = r.top + (r.height - H * s) / 2;
   const pose = poseMatrix(shown.p.map(q => ({ x: q.x * s + ox, y: q.y * s + oy })),
-    FOCAL * Math.max(W, H) * s, r.left + r.width / 2, r.top + r.height / 2);
+    FOCAL * Math.max(W, H) * s, r.left + r.width / 2, r.top + r.height / 2, shown.down);
+  shown.down = pose.down;
   el.style.transform = pose.css;
   // Turn the statue to face the camera. Seen from straight above the direction is meaningless, so keep the last one.
   if (shown.yaw == null) shown.yaw = pose.yaw;
-  else if (!pose.overhead) shown.yaw += Math.atan2(Math.sin(pose.yaw - shown.yaw), Math.cos(pose.yaw - shown.yaw)) * .25;
-  statue.style.transform = `translate(150px, 150px) rotateZ(${shown.yaw}rad) rotateX(90deg)`;
-  const text = tile.n <= found ? LETTERS[tile.n - 1] : '🎁';
-  if (statue.dataset.t !== text) {
-    statue.dataset.t = text;
-    // a letter is 14 copies stacked 3 px apart, dark at the back, so it has real thickness from any angle.
-    // (-z is toward the camera here: the matrix's z axis points down into the card)
-    statue.innerHTML = '<div class="rise">' + (tile.n > found ? '<span>🎁</span>' : Array.from({ length: 14 }, (_, i) =>
-      `<span${i === 13 ? ' class="front"' : ''} style="transform:translateX(-50%) translateZ(${-i * 3}px);color:hsl(42,78%,${24 + i * 2}%)">${text}</span>`
-    ).join('')) + '</div>';
+  else if (!pose.overhead) {
+    const d = Math.atan2(Math.sin(pose.yaw - shown.yaw), Math.cos(pose.yaw - shown.yaw));
+    shown.yaw += d * ease(Math.abs(d), 2 * pose.noise);
+  }
+  turn.style.transform = `translate(150px, 150px) translateZ(-40px) rotateZ(${shown.yaw}rad)`;   // -40: on top of the plinth
+  const text = tile.n <= found ? LETTERS[tile.n - 1] : '';
+  if (stand.dataset.t !== text) {
+    stand.dataset.t = text;
+    stand.innerHTML = '<div class="rise">' + (text ? letterStatue(text) : GIFT) + SPARKS + '</div>';
   }
   el.hidden = false;
 }
+
+// ---- what stands on the card. In the statue's own space: x = sideways, -y = up, -z = toward the camera. ----
+
+// A letter: 10 copies stacked 4 px apart form the dark side, then a pale copy nudged up-left (the lit bevel edge),
+// then the polished face on top.
+const letterStatue = c => Array.from({ length: 10 }, (_, i) =>
+  `<span style="transform:translateX(-50%) translateZ(${-i * 4}px);color:hsl(40,82%,${19 + i * 2.2}%)">${c}</span>`).join('') +
+  `<span class="edge">${c}</span><span class="front">${c}</span>`;
+
+// A wrapped present: four walls, a lid, and a bow.
+const GIFT = '<div class="box" style="transform:translateZ(95px)"></div>' +
+  '<div class="box" style="transform:rotateY(90deg) translateZ(95px)"></div><div class="box" style="transform:rotateY(90deg) translateZ(-95px)"></div>' +
+  '<div class="box" style="transform:translateZ(-95px)"></div><div class="box lid"></div>' +
+  '<u style="left:-88px;transform:rotate(-24deg)"></u><u style="left:4px;transform:rotate(24deg)"></u><u class="knot"></u>';
+
+const SPARKS = '<b style="left:-170px;bottom:250px">✦</b><b style="left:120px;bottom:300px;animation-delay:.9s">✦</b>' +
+  '<b style="left:150px;bottom:90px;animation-delay:1.7s">✦</b>';
+
+// The plinth, built once: flat discs stacked upward read as a stepped cylinder from any angle (3 wide ones for the
+// lower step, 7 for the upper; two are gold bands), with a decorated top face.
+$('tile').children[1].innerHTML = Array.from({ length: 10 }, (_, i) => {
+  const d = i < 3 ? 480 : 440;
+  return `<i style="width:${d}px;height:${d}px;margin:${-d / 2}px;transform:translateZ(${-i * 4}px);` +
+    `background:${i === 2 || i === 9 ? '#e3b23c' : `hsl(350,72%,${13 + i * 1.6}%)`}"></i>`;
+}).join('') + `<svg viewBox="-220 -220 440 440">
+  <defs><radialGradient id="felt" cy="40%"><stop offset="0" stop-color="#b8213c"/><stop offset="1" stop-color="#560613"/></radialGradient>
+    <path id="leaf" d="M0 0Q9 -15 20 -9Q24 -3 34 -6Q30 3 38 8Q26 10 24 18Q14 12 6 16Q8 8 0 0Z" fill="#1d6b3c" stroke="#0e3f22" stroke-width="1.5"/></defs>
+  <circle r="218" fill="#ffd76a"/><circle r="208" fill="url(#felt)"/>
+  <circle r="196" fill="none" stroke="#3d040d" stroke-width="3"/><circle r="192" fill="none" stroke="#e3b23c" stroke-width="2"/>
+  <circle r="150" fill="none" stroke="#e3b23c" stroke-width="5"/><circle r="144" fill="none" stroke="#3d040d" stroke-width="2"/>
+  ${Array.from({ length: 18 }, (_, i) => i % 6 === 0
+    ? `<g transform="rotate(${i * 20}) translate(0 -171)"><use href="#leaf" transform="rotate(200)"/><use href="#leaf" transform="rotate(-20)"/>` +
+      `<circle r="6" fill="#e0182d"/><circle cx="-9" cy="6" r="5" fill="#c20f24"/><circle cx="7" cy="8" r="5" fill="#c20f24"/><circle cx="-2" cy="-2" r="1.6" fill="#fff"/></g>`
+    : `<text transform="rotate(${i * 20}) translate(0 -165)" text-anchor="middle" font-size="17" fill="#ffd76a">★</text>`).join('')}
+</svg>`;
 
 function askCompass() {
   // iOS: must be called directly inside the tap, before any await
@@ -446,6 +526,21 @@ if (location.search.includes('test')) {
     const q = mat.transformPoint({ x, y, z }), want = see(x, y, z);
     console.assert(Math.hypot(q.x / q.w - want.x, q.y / q.w - want.y) < 1, 'card point lands where the camera sees it', x, y, z);
   });
+  // jitter: a small far card whose corners wobble by up to 3 px. The statue's top must stay almost still.
+  {
+    const r = $('view').getBoundingClientRect(), f2 = FOCAL * Math.max(r.width, r.height), th2 = -Math.PI / 3, Z0 = f2 * 300 / 80;
+    const far = (x, y) => { const Z = (y - 150) * Math.sin(th2) + Z0; return [f2 * (x - 150) / Z + r.width / 2, f2 * (y - 150) * Math.cos(th2) / Z + r.height / 2]; };
+    let seed = 11, prev = null, sum = 0;
+    const wob = ([x, y]) => ({ x: x + ((seed = seed * 16807 % 2147483647) / 2147483647 - .5) * 6, y: y + ((seed = seed * 16807 % 2147483647) / 2147483647 - .5) * 6 });
+    for (let i = 0; i < 180; i++) {
+      showTile({ n: 1, loc: { topLeftCorner: wob(far(0, 0)), topRightCorner: wob(far(300, 0)), bottomRightCorner: wob(far(300, 300)), bottomLeftCorner: wob(far(0, 300)) } }, r.width, r.height);
+      const q = new DOMMatrix($('tile').style.transform).transformPoint({ x: 150, y: 150, z: -250 }), top = [q.x / q.w, q.y / q.w];
+      if (i > 30) sum += Math.hypot(top[0] - prev[0], top[1] - prev[1]);
+      prev = top;
+    }
+    showTile(null);
+    console.assert(sum / 149 < 1, 'statue top wobbles under 1 px per frame', sum / 149);
+  }
   onCode('hello');  console.assert(found === 0, 'foreign QR ignored');
   onCode('mx3');    console.assert(found === 0, 'future card refused');
   onCode('mx1'); onCode('mx1'); console.assert(found === 1, 'repeat ignored');
