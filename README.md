@@ -5,7 +5,7 @@ A one-time Christmas letter hunt that runs in the phone browser. Nine QR cards a
 ## How it plays
 
 - Tap **Kezdjük!** and allow camera and motion access.
-- Point the camera at a card. The QR code is covered on screen by a round red-and-gold plinth lying flat on the card. A gift stands on it until the card is found, then a gold 3D letter that turns to face the camera. Cards can lie on the floor or a table.
+- Point the camera at a card. The QR code is covered on screen by a round red-and-gold plinth lying flat on the card. A gift stands on it until the card is found, then a gold 3D letter that turns to face the camera. Cards can lie on the floor or a table. When a card is found, its letter launches up from the statue and flies into its place in the row at the top.
 - The bottom panel shows a written hint and a compass arrow towards the next card. Hold the phone flat for the arrow.
 - Cards must be found in order. A later card answers "Még nem!", a repeated card does nothing.
 - After the ninth card the phrase lights up and the final hint points to the gift.
