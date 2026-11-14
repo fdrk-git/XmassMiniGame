@@ -142,16 +142,43 @@ function onCode(text) {
   return n;   // already-found cards: nothing happens
 }
 
+const small = document.createElement('canvas'), sctx = small.getContext('2d', { willReadFrequently: true });
+
+// Decodes one region of `src`, shrunk so its long side is at most `maxSide` px (jsQR time grows with pixel count).
+// Returned corner positions are mapped back to `src` coordinates.
+function decode(src, sx, sy, sw, sh, maxSide) {
+  const k = Math.min(1, maxSide / Math.max(sw, sh));
+  small.width = Math.max(1, sw * k | 0); small.height = Math.max(1, sh * k | 0);
+  sctx.drawImage(src, sx, sy, sw, sh, 0, 0, small.width, small.height);
+  const qr = jsQR(sctx.getImageData(0, 0, small.width, small.height).data, small.width, small.height, { inversionAttempts: 'dontInvert' });
+  if (qr) for (const p of Object.values(qr.location)) if (p) { p.x = sx + p.x / k; p.y = sy + p.y / k; }
+  return qr;
+}
+
+function findCode(src, W, H) {
+  let qr = null;
+  if (lastSeen && performance.now() - lastSeen.t < 600) {
+    // a card was just here: look closely around its last position first (small area, so sharp and fast)
+    const p = Object.values(lastSeen.loc).filter(Boolean), xs = p.map(q => q.x), ys = p.map(q => q.y);
+    const r = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 1.5;
+    const cx = (Math.max(...xs) + Math.min(...xs)) / 2, cy = (Math.max(...ys) + Math.min(...ys)) / 2;
+    const x0 = Math.max(0, cx - r), y0 = Math.max(0, cy - r);
+    qr = decode(src, x0, y0, Math.min(W, cx + r) - x0, Math.min(H, cy + r) - y0, 480);
+  }
+  // shortcut: whole frame is searched at 800px, so far-away cards need her to step closer; raise if range is too short
+  return qr || decode(src, 0, 0, W, H, 800);
+}
+
 function scan() {
-  const v = $('video'), c = $('view'), ctx = c.getContext('2d', { willReadFrequently: true });
+  const v = $('video'), c = $('view'), ctx = c.getContext('2d');
   if (v.videoWidth) {
     if (c.width !== v.videoWidth) { c.width = v.videoWidth; c.height = v.videoHeight; }
     ctx.drawImage(v, 0, 0);
-    const qr = jsQR(ctx.getImageData(0, 0, c.width, c.height).data, c.width, c.height, { inversionAttempts: 'dontInvert' });
+    const qr = findCode(v, c.width, c.height);
     const n = qr && onCode(qr.data);
     if (n) lastSeen = { n, loc: qr.location, t: performance.now() };
     // keep covering for a moment after a missed frame so the QR never flashes through
-    if (lastSeen && performance.now() - lastSeen.t < 500) cover(ctx, lastSeen);
+    if (lastSeen && performance.now() - lastSeen.t < 600) cover(ctx, lastSeen);
   }
   requestAnimationFrame(scan);
 }
