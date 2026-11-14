@@ -178,7 +178,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.1.5';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.1.6';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -388,12 +388,15 @@ function grabGray(src, W, H) {
 // to the frame edge.
 function follow(loc) {
   if (!prevGray) return false;
-  const w = tcv.width, h = tcv.height, R = 16;   // R: furthest shift searched per frame, in tracking pixels
+  const w = tcv.width, h = tcv.height, R = 10;   // R: furthest shift searched per frame, in tracking pixels (40 px of the camera picture; a shaking hand moves a card a fraction of that per frame)
   const p = Object.values(loc).filter(Boolean), xs = p.map(q => q.x), ys = p.map(q => q.y);
   const cx = (Math.max(...xs) + Math.min(...xs)) / 2 * tk | 0, cy = (Math.max(...ys) + Math.min(...ys)) / 2 * tk | 0;
-  // patch reaches past the code into the card's white border: its edges survive blur far better than the code's dots
-  const half = Math.min(48, Math.max(6, (Math.max(...xs) - Math.min(...xs)) * tk * .8 | 0));
-  if (cx - half - R < 1 || cy - half - R < 1 || cx + half + R >= w - 1 || cy + half + R >= h - 1) return false;
+  // The patch reaches past the code into the card's white border: its edges survive blur far better than the code's dots.
+  // Near the edge of the picture it shrinks to the room that is left (the search must stay inside the picture); only a
+  // patch too small to tell anything apart means the card is practically out of view.
+  const want = (Math.max(...xs) - Math.min(...xs)) * tk * .8 | 0;
+  const half = Math.min(48, Math.max(6, want), Math.min(cx, cy, w - 1 - cx, h - 1 - cy) - R - 1);
+  if (half < 6) return false;
   const diff = (dx, dy, limit) => {
     let s = 0;
     for (let y = -half; y <= half && s < limit; y += 2)
@@ -424,6 +427,7 @@ function follow(loc) {
   const det = xx * yy - xy * xy, lim = v => det && best / samples < 12 ? Math.max(-1, Math.min(1, v / det)) : 0;
   const shift = { x: (bx + lim(yy * xt - xy * yt)) / tk, y: (by + lim(xx * yt - xy * xt)) / tk };
   for (const q of p) { q.x += shift.x; q.y += shift.y; }
+  shift.mismatch = best / samples;   // how well the patch matched (0 = identical), to tell a real card from background
   return shift;   // how far the card moved in the picture since the previous frame
 }
 
@@ -444,13 +448,14 @@ function findCode(src, W, H, wholeFrame) {
 }
 
 // Processes one camera frame; returns the tile to draw ({n, loc}) or null.
-// How long a tile may stay without a successful read of its code. This is only a backstop: when tracking loses the
-// card the tile is let go after 250 ms (below). But tracking alone can end up following the background after the card
-// has left, so a tile is also dropped if its code has not been read for this long. Measured with a simulated
-// hand-held camera: while a card stayed in view, the longest gap between reads was 0.23 s with moderate shake, 0.97 s
-// with strong shake and heavy motion blur (30 fps, 10% of frames readable) and 1.45 s at 20 fps. The value sits above
-// those; a card shaken harder than that is practically unreadable anyway. Not yet tuned on a real phone.
-const HIDE_MS = 2000;
+// How long a tile may stay without a successful read of its code. When tracking loses the card, the tile is let go after
+// 250 ms (below). But once the card has left, tracking can simply follow the background instead (measured: it matches
+// the background as well as it matches a real card, so match quality cannot tell them apart), and then only failed reads
+// show that the card is gone. Simulated hand-held camera, card staying in view: longest gap between reads 0.23 s with
+// moderate shake and 0.97 s with strong shake and heavy motion blur (30 fps, 10% of frames readable); at 20 fps with
+// strong shake 1.45 s, which this value will drop. When the card has really left and tracking follows the background,
+// the tile lingers up to this long. Not yet tuned on a real phone.
+const HIDE_MS = 1200;
 
 function step(src, W, H) {
   const now = performance.now();
@@ -585,8 +590,8 @@ function showTile(tile, W, H) {
     leaving = setTimeout(() => { el.hidden = true; el.classList.remove('leave'); leaving = null; }, 200);
     return;
   }
-  if (leaving) { clearTimeout(leaving); leaving = null; el.classList.remove('leave'); stand.dataset.t = '-'; }   // came back in time: play the entrance again
-  else if (el.hidden) stand.dataset.t = '-';
+  if (leaving) { clearTimeout(leaving); leaving = null; el.classList.remove('leave'); }   // came back before it had gone: just stay
+  else if (el.hidden) stand.dataset.t = '-';   // came back after it had gone: play the entrance again
   const target = [tile.loc.topLeftCorner, tile.loc.topRightCorner, tile.loc.bottomRightCorner, tile.loc.bottomLeftCorner];
   if (!shown || shown.n !== tile.n) shown = { n: tile.n, p: target.map(q => ({ x: q.x, y: q.y })), yaw: null, down: null };
   else {
