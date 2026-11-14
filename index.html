@@ -12,7 +12,10 @@
   video { display: none; }
   /* What hides a QR code: a 300px box that showTile() maps onto the card in 3D. On it: a shadow on the floor, a
      stepped round plinth, and (in .turn, which faces the camera) a contact shadow and the upright statue. */
-  #tile, #tile .plinth, #tile .turn, #tile .stand, #tile .rise { transform-style: preserve-3d; }
+  #tile, #tile .pop, #tile .plinth, #tile .turn, #tile .stand, #tile .rise { transform-style: preserve-3d; }
+  #tile .pop { position: absolute; inset: 0; transform-origin: 150px 150px; }
+  #tile.leave .pop { animation: tileOut .2s ease-in forwards; }
+  @keyframes tileOut { to { transform: scale3d(0, 0, 0); } }
   #tile { position: fixed; left: 0; top: 0; width: 300px; height: 300px; transform-origin: 0 0; pointer-events: none; }
   #tile .floor { position: absolute; left: -150px; top: -150px; width: 600px; height: 600px; border-radius: 50%;
                  background: radial-gradient(closest-side, rgba(0, 0, 0, .6) 72%, transparent); }
@@ -53,7 +56,7 @@
   #slots i, #preview i { color: rgba(255, 215, 106, .35); background: linear-gradient(rgba(120, 12, 30, .55), rgba(60, 4, 14, .55)); border-color: rgba(227, 178, 60, .55); }
   .done #slots { top: 30%; }
   .done #slots b { animation: glow 1.5s infinite alternate; }
-  @keyframes glow { to { text-shadow: var(--ex), 0 0 24px #ffd76a, 0 0 48px #e33; box-shadow: 0 0 .7em #ffd76a, inset 0 0 .35em rgba(0, 0, 0, .45); } }
+  @keyframes glow { to { text-shadow: var(--ex), 0 0 .25em rgba(255, 215, 106, .5); box-shadow: 0 0 .8em rgba(255, 215, 106, .75), inset 0 0 .35em rgba(0, 0, 0, .45); } }
   /* the hint: a cream gift tag with a punched hole */
   #panel { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); padding: 14px 16px 14px 36px;
            background: linear-gradient(#fff9e0, #f4e0aa); color: #5a0715; border: 2px solid #e3b23c; border-radius: 18px;
@@ -68,6 +71,8 @@
   .fly { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; font: 700 120px/1 Georgia, serif; color: #ffe596;
          text-shadow: 0 2px 0 #e3b23c, 0 4px 0 #cc9a2a, 0 6px 0 #b3821b, 0 8px 0 #976b10, 0 10px 0 #7a5608,
                       0 14px 16px rgba(0, 0, 0, .7), 0 0 40px #ffd76a; }
+  .spark { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; color: #fff3b8; text-shadow: 0 0 10px #ffd76a, 0 0 3px #fff; line-height: 1; }
+  .ring { position: fixed; z-index: 5; pointer-events: none; border: 3px solid #ffd76a; border-radius: 50%; box-shadow: 0 0 14px #ffd76a, inset 0 0 10px #ffd76a; }
   #dbg { position: fixed; left: 8px; top: 70px; z-index: 6; padding: 6px 8px; font: 12px/1.4 monospace; background: rgba(0, 0, 0, .65); pointer-events: none; }
   #toast { position: fixed; top: 40%; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 14px; max-width: 92vw;
            background: linear-gradient(#fff9e0, #f4e0aa); color: #5a0715; border: 2px solid #e3b23c; box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
@@ -89,20 +94,26 @@
   .snow { inset: 0; overflow: hidden; pointer-events: none; }
   .snow i { position: absolute; top: -12px; border-radius: 50%; background: #fff; animation: fall linear infinite; }
   @keyframes fall { to { transform: translate(40px, calc(100vh + 24px)); } }
-  #finaleSnow { position: fixed; z-index: 4; display: none; }
+  /* snow over the game: a light layer all the time, a heavier one on the finale; above the camera and the tile, below the top row and the hint */
+  #snow, #finaleSnow { position: fixed; }
+  #snow i { scale: .7; }
+  #finaleSnow { display: none; }
   .done #finaleSnow { display: block; }
   .lights { top: 0; left: 0; right: 0; height: 34px; pointer-events: none; }
   .lights svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .lights i { position: absolute; width: 9px; height: 13px; margin-left: -4.5px; border-radius: 50% 50% 45% 45%; background: currentColor;
               box-shadow: 0 0 10px 1px currentColor; animation: bulb 2.4s ease-in-out infinite alternate; }
   @keyframes bulb { from { opacity: .45; } }
-  @media (prefers-reduced-motion: reduce) { .snow i, .lights i, #go { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .snow i { display: none; } .lights i, #go { animation: none; } }
   [hidden] { display: none !important; }
 
   /* setup / print mode */
   .setup body, body.setup { overflow: auto; background: #fff; color: #000; padding: 20px; height: auto; }
   #setup h2 { margin: 18px 0 8px; }
   #heading { font: 700 64px monospace; }
+  #hints label { display: block; margin: 12px 0 3px; font-weight: 600; }
+  #hints textarea { width: 100%; padding: 8px; font: 16px/1.4 system-ui, sans-serif; border: 1px solid #bbb; border-radius: 8px; }
+  #hintsOut { font: 13px monospace; white-space: pre-wrap; background: #eee; padding: 10px; margin: 12px 0 8px; user-select: all; }
   #out { font: 14px monospace; white-space: pre-wrap; background: #eee; padding: 10px; margin-top: 10px; user-select: all; }
   #cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; }
   @media print { #cards { grid-template-columns: repeat(3, 1fr); } }
@@ -119,7 +130,8 @@
 
 <video id="video" playsinline muted></video>
 <canvas id="view"></canvas>
-<div id="tile" hidden><div class="floor"></div><div class="plinth"></div><div class="turn"><div class="contact"></div><div class="stand"></div></div></div>
+<div id="tile" hidden><div class="pop"><div class="floor"></div><div class="plinth"></div><div class="turn"><div class="contact"></div><div class="stand"></div></div></div></div>
+<div id="snow" class="snow" data-flakes="16"></div><div id="finaleSnow" class="snow" data-flakes="24"></div>
 <div id="slots"></div>
 <div id="panel" hidden>
   <div id="hint"></div>
@@ -137,7 +149,6 @@
   <p class="small">Engedélyezd a kamerát és a mozgásérzékelőt.</p>
   <p id="err" style="color:#ff9c9c"></p>
 </div>
-<div id="finaleSnow" class="snow"></div>
 
 <div id="setup" hidden>
   <div class="noprint">
@@ -149,7 +160,15 @@
     <button id="rec">Record</button> <button id="undo">Undo</button>
     <div id="out"></div>
     <p>Paste that line over <code>const BEARINGS</code> in index.html.</p>
-    <h2>2. Print the cards</h2>
+    <h2>2. Edit the hints</h2>
+    <p>One hint for every step; the game shows it on a gift tag. Type here, then copy the block below and paste it over
+       <code>const HINTS</code> in index.html (everything from <code>const HINTS = [</code> to the closing <code>];</code>) and deploy it.
+       What you type is remembered on this computer only: the game does not change until you paste the block.
+       The game reads hints as HTML, so a stray &lt; or &amp; would be misread.</p>
+    <div id="hints"></div>
+    <pre id="hintsOut"></pre>
+    <button id="copyHints">Copy</button> <span id="copied"></span>
+    <h2>3. Print the cards</h2>
     <p>Print this page (the instructions above are left out). The small number is the order: 1 = M … 9 = S.</p>
     <p id="ver" style="opacity:.6;font-size:13px"></p>
   </div>
@@ -159,7 +178,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.1.4';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.1.5';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -215,7 +234,7 @@ function turnArrow() {
 
 // Decorations: falling snow (start screen and finale) and a string of lights across the top of the start screen.
 function decorate() {
-  for (const box of document.querySelectorAll('.snow')) for (let i = 0; i < 28; i++) {
+  for (const box of document.querySelectorAll('.snow')) for (let i = 0; i < (+box.dataset.flakes || 28); i++) {
     const f = document.createElement('i'), size = 3 + Math.random() * 5;
     f.style.cssText = `left:${Math.random() * 100}%;width:${size}px;height:${size}px;opacity:${.35 + Math.random() * .55};` +
       `animation-duration:${6 + Math.random() * 8}s;animation-delay:${-Math.random() * 14}s`;
@@ -234,8 +253,36 @@ decorate();
 
 let landing = -1;   // index of the letter now flying to its place in the top row (hidden there until it lands), or -1
 
-// A flat gold letter launches up from the statue (or from mid-screen if no card is in view), spins, and flies into
-// its place in the top row.
+// ---- sparkle effects: made on demand, each removes itself when its animation ends ----
+const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// One gold spark at (x, y) that drifts by (dx, dy) over `ms` while it fades, shrinks and turns.
+function spark(x, y, dx, dy, ms, size = 14) {
+  const el = document.createElement('div');
+  el.className = 'spark'; el.textContent = '✦'; el.style.fontSize = size + 'px';
+  document.body.append(el);
+  el.animate([{ transform: `translate(${x}px, ${y}px) translate(-50%, -50%) scale(1)`, opacity: 1 },
+              { transform: `translate(${x + dx}px, ${y + dy}px) translate(-50%, -50%) scale(.2) rotate(180deg)`, opacity: 0 }],
+             { duration: ms, easing: 'ease-out' });
+  setTimeout(() => el.remove(), ms + 50);   // a timer, not an animation event: it also fires if the page was in the background
+}
+
+// A ring that grows and fades, with sparks flying out of it.
+function burst(x, y, sparks = 10, reach = 70) {
+  if (calm()) return;
+  const ring = document.createElement('div');
+  ring.className = 'ring'; ring.style.cssText = `left:${x}px;top:${y}px;width:20px;height:20px;margin:-10px 0 0 -10px`;
+  document.body.append(ring);
+  ring.animate([{ transform: 'scale(.3)', opacity: 1 }, { transform: 'scale(3.2)', opacity: 0 }], { duration: 600, easing: 'ease-out' });
+  setTimeout(() => ring.remove(), 650);
+  for (let i = 0; i < sparks; i++) {
+    const a = Math.PI * 2 * i / sparks + Math.random() * .5, d = reach * (.6 + Math.random() * .7);
+    spark(x, y, Math.cos(a) * d, Math.sin(a) * d, 500 + Math.random() * 300, 16 + Math.random() * 14);
+  }
+}
+
+// A flat gold letter launches up from the statue (or from mid-screen if no card is in view) in a flash of sparks,
+// spins and tilts through the air leaving a sparkle trail, and lands in its slot with a ring, sparks and a pop.
 function fly(i) {
   const el = document.createElement('div'), slot = $('slots').children[i].getBoundingClientRect();
   el.className = 'fly'; el.textContent = LETTERS[i];
@@ -248,13 +295,42 @@ function fly(i) {
     [x, y] = at(-170);
     s = Math.hypot(head[0] - foot[0], head[1] - foot[1]) / 260 * 360 / 120;
   }
-  const pose = (x, y, s, turn) => `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${s}) rotateY(${turn}deg)`;
+  burst(x, y, 8, 60);
+  const pose = (x, y, s, turn, tilt) => `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${s}) rotateY(${turn}deg) rotate(${tilt}deg)`;
   el.animate([
-    { transform: pose(x, y, s, 0), easing: 'cubic-bezier(.2, .8, .3, 1)' },                                               // launch
-    { transform: pose(x, Math.max(130, y - innerHeight * .3), s * 1.3, 360), offset: .4, easing: 'cubic-bezier(.6, 0, .4, 1)' },   // hang
-    { transform: pose(slot.left + slot.width / 2, slot.top + slot.height / 2, .25, 720) },                               // land (30px / 120px)
+    { transform: pose(x, y, s, 0, 0), easing: 'cubic-bezier(.2, .8, .3, 1)' },                                                          // launch
+    { transform: pose(x, Math.max(130, y - innerHeight * .3), s * 1.3, 360, -14), offset: .4, easing: 'cubic-bezier(.6, 0, .4, 1)' },   // hang, leaning
+    { transform: pose(slot.left + slot.width / 2, slot.top + slot.height / 2, .25, 720, 10) },                                          // land (30px / 120px)
   ], { duration: 1500, fill: 'forwards' });
-  setTimeout(() => { el.remove(); if (landing === i) landing = -1; render(); }, 1500);
+  const trail = calm() ? 0 : setInterval(() => {   // 33 sparks over the flight, each gone after under a second
+    const b = el.getBoundingClientRect();
+    spark(b.left + b.width * (.25 + Math.random() * .5), b.top + b.height * (.25 + Math.random() * .5),
+      (Math.random() - .5) * 40, 30 + Math.random() * 40, 500 + Math.random() * 300, 14 + Math.random() * 18);
+  }, 45);
+  setTimeout(() => {
+    clearInterval(trail); el.remove(); if (landing === i) landing = -1; render();
+    const chip = $('slots').children[i], r = chip.getBoundingClientRect();
+    if (!calm()) {   // the slot pops and flashes as the letter lands
+      chip.animate([{ transform: 'scale(1)', boxShadow: '0 0 0 rgba(255, 215, 106, 0)' },
+                    { transform: 'scale(1.45) rotate(-6deg)', boxShadow: '0 0 1.1em #ffd76a', offset: .35 },
+                    { transform: 'scale(1)', boxShadow: '0 0 0 rgba(255, 215, 106, 0)' }], { duration: 500, easing: 'cubic-bezier(.3, 1.6, .5, 1)' });
+      burst(r.left + r.width / 2, r.top + r.height / 2);
+    }
+    if (found === LETTERS.length && landing < 0) celebrate();
+  }, 1500);
+}
+
+// All nine found: the letters jump one after another in a wave, each with a small burst, and gold sparks rain down.
+function celebrate() {
+  if (calm()) return;
+  [...$('slots').children].forEach((chip, i) => {
+    chip.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-.9em) scale(1.25) rotate(-8deg)', offset: .4 }, { transform: 'translateY(0) scale(1)' }],
+      { duration: 700, delay: i * 80, easing: 'cubic-bezier(.3, 1.5, .5, 1)' });
+    const r = chip.getBoundingClientRect();
+    setTimeout(burst, i * 80 + 250, r.left + r.width / 2, r.top + r.height / 2, 6, 50);
+  });
+  for (let i = 0; i < 28; i++)
+    setTimeout(spark, 300 + i * 70, Math.random() * innerWidth, -10, (Math.random() - .5) * 80, innerHeight * (.4 + Math.random() * .5), 1800 + Math.random() * 1200, 14 + Math.random() * 18);
 }
 
 function toast(msg) {
@@ -368,23 +444,30 @@ function findCode(src, W, H, wholeFrame) {
 }
 
 // Processes one camera frame; returns the tile to draw ({n, loc}) or null.
+// How long a tile may stay without a successful read of its code. This is only a backstop: when tracking loses the
+// card the tile is let go after 250 ms (below). But tracking alone can end up following the background after the card
+// has left, so a tile is also dropped if its code has not been read for this long. Measured with a simulated
+// hand-held camera: while a card stayed in view, the longest gap between reads was 0.23 s with moderate shake, 0.97 s
+// with strong shake and heavy motion blur (30 fps, 10% of frames readable) and 1.45 s at 20 fps. The value sits above
+// those; a card shaken harder than that is practically unreadable anyway. Not yet tuned on a real phone.
+const HIDE_MS = 2000;
+
 function step(src, W, H) {
   const now = performance.now();
   grabGray(src, W, H);
   // move the held tile with the picture first, so the close-up search below looks in the right place.
-  // Tracking alone drifts, so it is trusted for at most 2.5 s without a fresh decode.
-  // Once the patch is lost it is not picked up again (it would lock onto the background); only a decode revives it.
-  const followed = lastSeen && !lastSeen.lost && now - lastSeen.t < 2500 && follow(lastSeen.loc);
+  // Once the patch is lost it is not picked up again (it would lock onto the background); only a read revives it.
+  const followed = lastSeen && !lastSeen.lost && follow(lastSeen.loc);
   // while the tile is following, the close-up search is enough; the slower whole-frame search runs every 4th frame
   const qr = findCode(src, W, H, !followed || ++frameNo % 4 === 0);
   const n = qr && onCode(qr.data);
   if (n) lastSeen = { n, loc: qr.location, t: now, live: now };
-  else if (followed) lastSeen.live = now;
-  if (lastSeen) lastSeen.shift = followed || null;   // this frame's measured movement, for showTile()
   else if (lastSeen) {
-    lastSeen.lost = true;
-    if (now - lastSeen.live > 250) lastSeen = null;   // short grace, then let go
+    if (followed) lastSeen.live = now; else lastSeen.lost = true;
+    // let go: tracking failed for a moment (card gone or covered), or no read for too long
+    if (now - lastSeen.t > HIDE_MS || (lastSeen.lost && now - lastSeen.live > 250)) lastSeen = null;
   }
+  if (lastSeen) lastSeen.shift = followed || null;   // this frame's measured movement, for showTile()
   return lastSeen;
 }
 
@@ -488,13 +571,22 @@ function poseMatrix([p0, p1, p2, p3], f, cx, cy, prevDown) {
   };
 }
 
+let leaving = null;   // timer while the tile scales away
 let shown = null;   // the tile as drawn: corners, upright direction and statue turn, each smoothed over time
 
 // Places the #tile element over the card (or hides it). W, H: size of the camera picture the corners refer to.
 // Per frame this only sets two transforms; everything else on the tile is static or animated by CSS.
 function showTile(tile, W, H) {
-  const el = $('tile'), turn = el.lastElementChild, stand = turn.lastElementChild;
-  if (!tile) { el.hidden = true; shown = null; return; }
+  const el = $('tile'), turn = el.querySelector('.turn'), stand = turn.lastElementChild;
+  if (!tile) {
+    if (el.hidden || leaving) return;
+    shown = null;
+    el.classList.add('leave');   // scales away over 200 ms, then hides
+    leaving = setTimeout(() => { el.hidden = true; el.classList.remove('leave'); leaving = null; }, 200);
+    return;
+  }
+  if (leaving) { clearTimeout(leaving); leaving = null; el.classList.remove('leave'); stand.dataset.t = '-'; }   // came back in time: play the entrance again
+  else if (el.hidden) stand.dataset.t = '-';
   const target = [tile.loc.topLeftCorner, tile.loc.topRightCorner, tile.loc.bottomRightCorner, tile.loc.bottomLeftCorner];
   if (!shown || shown.n !== tile.n) shown = { n: tile.n, p: target.map(q => ({ x: q.x, y: q.y })), yaw: null, down: null };
   else {
@@ -549,7 +641,7 @@ const SPARKS = '<b style="left:-170px;bottom:250px">✦</b><b style="left:120px;
 
 // The plinth, built once: flat discs stacked upward read as a stepped cylinder from any angle (3 wide ones for the
 // lower step, 7 for the upper; two are gold bands), with a decorated top face.
-$('tile').children[1].innerHTML = Array.from({ length: 10 }, (_, i) => {
+$('tile').querySelector('.plinth').innerHTML = Array.from({ length: 10 }, (_, i) => {
   const d = i < 3 ? 480 : 440;
   return `<i style="width:${d}px;height:${d}px;margin:${-d / 2}px;transform:translateZ(${-i * 4}px);` +
     `background:${i === 2 || i === 9 ? '#e3b23c' : `hsl(350,72%,${13 + i * 1.6}%)`}"></i>`;
@@ -592,6 +684,10 @@ $('go').onclick = async () => {
   scan();
 };
 
+// The hints as a block to paste over `const HINTS` in this file. JSON.stringify escapes quotes, backslashes, line breaks
+// and emoji safely, and keeps accents as they are.
+const hintsBlock = texts => 'const HINTS = [\n' + texts.map(t => '  ' + JSON.stringify(t) + ',').join('\n') + '\n];';
+
 // ---------------- setup / print mode: open index.html?setup ----------------
 const setup = location.search.includes('setup');
 if (setup) {
@@ -626,6 +722,26 @@ if (setup) {
   }).join('');
   document.body.append(s);
   $('ver').textContent = 'Version ' + VERSION;
+  // hint editor: one box per hint, prefilled from the game's own HINTS. Typed text is remembered on this computer, but
+  // only while the game's HINTS are unchanged: after a new block is pasted in and deployed, the boxes start from that.
+  const base = JSON.stringify(HINTS), KEY = 'hunt.hints';
+  let texts = [...HINTS];
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY));
+    if (saved && saved.base === base && Array.isArray(saved.texts) && saved.texts.length === HINTS.length) texts = saved.texts.map(String);
+  } catch (e) { /* no storage: start from the game's hints */ }
+  const label = i => i === 0 ? `Start, leads to card 1 (${LETTERS[0]})` : i < LETTERS.length
+    ? `After card ${i} (${LETTERS[i - 1]}), leads to card ${i + 1}` : `After card ${i} (${LETTERS[i - 1]}), leads to the gift`;
+  $('hints').innerHTML = texts.map((_, i) => `<label for="h${i}">${label(i)}</label><textarea id="h${i}" rows="2"></textarea>`).join('');
+  texts.forEach((t, i) => $('h' + i).value = t);   // set as a value, not as markup, so any text is safe
+  const showHints = () => {
+    $('hintsOut').textContent = hintsBlock(texts);
+    try { localStorage.setItem(KEY, JSON.stringify({ base, texts })); } catch (e) { /* private window: nothing remembered */ }
+  };
+  $('hints').oninput = e => { texts[+e.target.id.slice(1)] = e.target.value; showHints(); };
+  $('copyHints').onclick = () => navigator.clipboard.writeText(hintsBlock(texts)).then(
+    () => $('copied').textContent = 'Copied', () => $('copied').textContent = 'Could not copy: select the block and copy it yourself');
+  showHints();
   $('cards').onclick = e => {
     if (!e.target.classList.contains('full')) return;
     $('full').firstElementChild.src = e.target.closest('div').querySelector('img').src;
@@ -637,6 +753,8 @@ if (setup) {
 
 // ---------------- self-check: open index.html?test and read the console ----------------
 if (location.search.includes('test')) {
+  let failed = 0; const assertNow = console.assert.bind(console);
+  console.assert = (ok, ...info) => { if (!ok) failed++; assertNow(ok, ...info); };   // counted, so the last line can say how many failed
   console.assert(HINTS.length === LETTERS.length + 1 && BEARINGS.length === HINTS.length, 'config lengths');
   // a card lying on the ground, seen at 60 degrees by a known camera: the matrix must put a point 200 px above
   // the card's centre where that camera would really see it
@@ -664,6 +782,31 @@ if (location.search.includes('test')) {
     showTile(null);
     console.assert(sum / 149 < 1, 'statue top wobbles under 1 px per frame', sum / 149);
   }
+  // hints block: pasting it back must give exactly the typed text, whatever it contains
+  {
+    const typed = ['plain', 'quote " and \\ backslash', 'two\nlines', '🎁 emoji', 'Árvíztűrő tükörfúrógép', "it's", '<\/script>', '', '  spaces  ', '\u2028 line sep'];
+    const back = new Function(hintsBlock(typed) + '; return HINTS')();
+    console.assert(JSON.stringify(back) === JSON.stringify(typed), 'hints block round trip', back);
+  }
+  // a tile with nothing readable must go: tracking lost -> after 250 ms; tracking fooled by an unchanging picture -> after HIDE_MS
+  {
+    const real = performance.now.bind(performance); let clock = 5000; performance.now = () => clock;
+    const frame = fill => { const c = document.createElement('canvas'); c.width = c.height = 320; const x = c.getContext('2d'); fill(x); return c; };
+    const flat = frame(x => { x.fillStyle = '#888'; x.fillRect(0, 0, 320, 320); });
+    const noise = () => frame(x => { for (let i = 0; i < 400; i++) { x.fillStyle = `hsl(${Math.random() * 360},50%,${Math.random() * 100}%)`; x.fillRect(Math.random() * 320, Math.random() * 320, 40, 40); } });
+    const corners = () => ({ topLeftCorner: { x: 110, y: 110 }, topRightCorner: { x: 210, y: 110 }, bottomRightCorner: { x: 210, y: 210 }, bottomLeftCorner: { x: 110, y: 210 } });
+    const keep = lastSeen;
+    lastSeen = null; step(flat, 320, 320); step(flat, 320, 320);   // two frames, so tracking has a previous picture to compare with
+    lastSeen = { n: 1, loc: corners(), t: clock, live: clock };
+    for (clock += 33; clock < 5000 + HIDE_MS - 100; clock += 33) step(flat, 320, 320);
+    console.assert(lastSeen, 'unchanging picture: tile still held just before HIDE_MS');
+    for (; clock < 5000 + HIDE_MS + 100; clock += 33) step(flat, 320, 320);
+    console.assert(!lastSeen, 'unchanging picture: tile let go after HIDE_MS');
+    lastSeen = { n: 1, loc: corners(), t: clock, live: clock }; step(noise(), 320, 320);
+    clock += 33; step(noise(), 320, 320); console.assert(lastSeen && lastSeen.lost, 'tracking lost on a different picture');
+    clock += 300; step(noise(), 320, 320); console.assert(!lastSeen, 'lost tile let go after 250 ms');
+    performance.now = real; lastSeen = keep;
+  }
   onCode('hello');  console.assert(found === 0, 'foreign QR ignored');
   onCode('mx3');    console.assert(found === 0, 'future card refused');
   onCode('mx1'); onCode('mx1'); console.assert(found === 1, 'repeat ignored');
@@ -671,7 +814,7 @@ if (location.search.includes('test')) {
   console.assert(found === 9 && !document.body.classList.contains('done'), 'all found; finale waits for the last letter');
   setTimeout(() => {
     console.assert(document.body.classList.contains('done') && !document.querySelector('.fly') && landing < 0, 'finale reached after landing');
-    console.log('self-check finished, found =', found);
+    console.log('self-check finished, found =', found, 'failed =', failed);
   }, 2000);
 }
 </script>

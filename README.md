@@ -5,17 +5,18 @@ A one-time Christmas letter hunt that runs in the phone browser. Nine QR cards a
 ## How it plays
 
 - Tap **Kezdjük!** and allow camera and motion access.
-- Point the camera at a card. The QR code is covered on screen by a round red-and-gold plinth lying flat on the card. A gift stands on it until the card is found, then a gold 3D letter that turns to face the camera. Cards can lie on the floor or a table. When a card is found, its letter launches up from the statue and flies into its place in the row at the top.
+- Point the camera at a card. The QR code is covered on screen by a round red-and-gold plinth lying flat on the card. A gift stands on it until the card is found, then a gold 3D letter that turns to face the camera. Cards can lie on the floor or a table. The statue is only there while a code is on screen: when the card leaves the picture it shrinks away, and it rises again when the card is back.
+- When a card is found, its letter launches up from the statue in a flash of sparks, spins to its place in the row at the top leaving a sparkle trail, and lands with a pop. Snow falls over the game the whole time, heavier at the end.
 - The bottom panel shows a written hint and a compass arrow towards the next card. Hold the phone flat for the arrow.
 - Cards must be found in order. A later card answers "Még nem!", a repeated card does nothing.
-- After the ninth card the phrase lights up and the final hint points to the gift.
+- After the ninth card the letters jump in a wave under a shower of gold sparks, then the phrase glows and the final hint points to the gift.
 
 The game text is in Hungarian. Progress is not saved: reloading restarts the hunt.
 
 ## Setting it up
 
 1. **Print the cards.** Open `index.html?setup` on a computer and print. The cards are deep red on cream with a gold frame, to match the statues; a black-and-white print of them should also scan (the reader only looks at brightness). Cards printed before v0.0.6 still work but scan poorly at an angle; reprint them. The small number on each card is its order (1 = M … 9 = S). To test without printing, **Full screen** under a card shows that one code large, ready to scan from the screen (tap to close), and **Download** saves it as `card-N.png`.
-2. **Write the hints.** Edit the ten entries of `HINTS` at the top of the script in `index.html`. The first leads to card 1, the last to the gift.
+2. **Write the hints.** On the same `?setup` page, type the ten hints into the boxes (the first leads to card 1, the last to the gift), press **Copy**, and paste the block over `const HINTS` at the top of the script in `index.html` (everything from `const HINTS = [` to the closing `];`), then deploy. What you type is kept on that computer only, and only until you paste a new block; the game itself does not change until then. You can also edit `HINTS` in `index.html` by hand.
 3. **Record the directions.** With the cards hidden, open `?setup` on the iPhone. At each spot hold the phone flat, point it at the next card and tap **Record**. Paste the resulting line over `const BEARINGS`. Steps left as `null` show no arrow.
 
 ## Requirements
@@ -31,7 +32,7 @@ The game text is in Hungarian. Progress is not saved: reloading restarts the hun
 python3 -m http.server 8123
 ```
 
-Then open `http://localhost:8123`. Adding `?debug` to the game's address shows live numbers on screen (frame rate, how often the code is read, and how much the tile slips, leans and turns per frame) for tuning steadiness on a real phone. Opening `http://localhost:8123/?test` runs a small self-check of the game logic; results are in the browser console.
+Then open `http://localhost:8123`. Adding `?debug` to the game's address shows live numbers on screen (frame rate, how often the code is read, and how much the tile slips, leans and turns per frame) for tuning steadiness on a real phone. Opening `http://localhost:8123/?test` runs a small self-check of the game logic; the last console line reports how many checks failed.
 
 ## Versions
 
