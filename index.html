@@ -223,7 +223,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.1.7';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.1.8';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -361,12 +361,14 @@ function fly(i) {
                     { transform: 'scale(1)', boxShadow: '0 0 0 rgba(255, 215, 106, 0)' }], { duration: 500, easing: 'cubic-bezier(.3, 1.6, .5, 1)' });
       burst(r.left + r.width / 2, r.top + r.height / 2);
     }
+    chime([NOTES[i]], 0);
     if (found === LETTERS.length && landing < 0) celebrate();
   }, 1500);
 }
 
 // All nine found: the letters jump one after another in a wave, each with a small burst, and gold sparks rain down.
 function celebrate() {
+  chime(NOTES, .09);
   if (calm()) return;
   [...$('slots').children].forEach((chip, i) => {
     chip.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-.9em) scale(1.25) rotate(-8deg)', offset: .4 }, { transform: 'translateY(0) scale(1)' }],
@@ -385,11 +387,30 @@ function toast(msg) {
   toastTimer = setTimeout(() => $('toast').classList.remove('on'), 2000);
 }
 
+// ---- sound: soft chimes made with the browser's audio API (no files). iOS allows sound only after a tap, so Start makes the context ----
+let audio;
+const NOTES = [523, 587, 659, 784, 880, 1047, 1175, 1319, 1568];   // C major pentatonic, one note per letter
+function chime(freqs, gap = .12) {
+  if (!audio) return;
+  freqs.forEach((f, k) => {
+    const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + k * gap;
+    o.frequency.value = f; o.connect(g); g.connect(audio.destination);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.18, t + .02); g.gain.exponentialRampToValueAtTime(.001, t + .7);
+    o.start(t); o.stop(t + .75);
+  });
+}
+
+// ---- progress survives a reload (a refresh or a phone that dropped the tab); open the game with ?reset to start over ----
+const KEEP = 'hunt.found', testing = location.search.includes('test');
+const savedCount = () => { try { return Math.min(LETTERS.length, +localStorage.getItem(KEEP) || 0); } catch (e) { return 0; } };
+try { if (location.search.includes('reset')) localStorage.removeItem(KEEP); } catch (e) { /* nothing to reset */ }
+
 // Returns the card number for one of our QR texts, else 0. Advances the game when it is the next card.
 function onCode(text) {
   const n = +(/^mx([1-9])$/.exec(text) || [])[1] || 0;
   if (n === found + 1) {
     found++;
+    if (!testing) try { localStorage.setItem(KEEP, found); } catch (e) { /* private window: nothing remembered */ }
     navigator.vibrate?.(200);
     landing = n - 1;
     render();
@@ -720,6 +741,7 @@ function askCompass() {
 
 $('go').onclick = async () => {
   const motion = askCompass();
+  try { audio ??= new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch (e) { audio = null; }   // no sound is fine
   try {
     $('video').srcObject = await navigator.mediaDevices.getUserMedia(
       { video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false });
@@ -729,10 +751,16 @@ $('go').onclick = async () => {
     return;
   }
   await motion;
+  found = savedCount(); render();
   $('start').hidden = true;
   $('panel').hidden = false;
   scan();
 };
+
+// Rescue for a card that will not scan: hold a finger on the letter row for 2 seconds to count the next card as found.
+let rescue;
+$('slots').addEventListener('pointerdown', () => { rescue = setTimeout(() => found < LETTERS.length && onCode('mx' + (found + 1)), 2000); });
+for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('slots').addEventListener(ev, () => clearTimeout(rescue));
 
 // The hints as a block to paste over `const HINTS` in this file. JSON.stringify escapes quotes, backslashes, line breaks
 // and emoji safely, and keeps accents as they are.
@@ -858,6 +886,9 @@ if (location.search.includes('test')) {
     clock += 300; step(noise(), 320, 320); console.assert(!lastSeen, 'lost tile let go after 250 ms');
     performance.now = real; lastSeen = keep;
   }
+  localStorage.setItem(KEEP, '4'); console.assert(savedCount() === 4, 'saved progress read back');
+  localStorage.setItem(KEEP, '99'); console.assert(savedCount() === 9, 'saved progress capped');
+  localStorage.setItem(KEEP, 'x'); console.assert(savedCount() === 0, 'bad saved progress ignored'); localStorage.removeItem(KEEP);
   onCode('hello');  console.assert(found === 0, 'foreign QR ignored');
   onCode('mx3');    console.assert(found === 0, 'future card refused');
   onCode('mx1'); onCode('mx1'); console.assert(found === 1, 'repeat ignored');

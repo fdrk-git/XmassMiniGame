@@ -11,7 +11,10 @@ A one-time Christmas letter hunt that runs in the phone browser. Nine QR cards a
 - Cards must be found in order. A later card answers "Még nem!", a repeated card does nothing.
 - After the ninth card the letters jump in a wave under a shower of gold sparks, then the phrase glows and the final hint points to the gift.
 
-The game text is in Hungarian. Progress is not saved: reloading restarts the hunt.
+- A soft chime plays as each letter lands and a short run of notes at the end (nothing plays while the iPhone's silent switch is on).
+- If a card will not scan, hold a finger on the row of letters for 2 seconds and the game counts the next card as found.
+
+The game text is in Hungarian. Progress is kept on the phone, so a reload or a dropped tab carries on where she was. To start over (for example after your own test run), open the game once with `?reset` added to the address.
 
 ## Setting it up
 
