@@ -60,6 +60,7 @@
   .fly { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; font: 700 120px/1 Georgia, serif; color: #ffe596;
          text-shadow: 0 2px 0 #e3b23c, 0 4px 0 #cc9a2a, 0 6px 0 #b3821b, 0 8px 0 #976b10, 0 10px 0 #7a5608,
                       0 14px 16px rgba(0, 0, 0, .7), 0 0 40px #ffd76a; }
+  #dbg { position: fixed; left: 8px; top: 70px; z-index: 6; padding: 6px 8px; font: 12px/1.4 monospace; background: rgba(0, 0, 0, .65); pointer-events: none; }
   #toast { position: fixed; top: 40%; left: 50%; transform: translateX(-50%); padding: 12px 18px; border-radius: 14px;
            background: rgba(0, 0, 0, .8); font-size: 18px; white-space: nowrap; opacity: 0; transition: opacity .3s; }
   #toast.on { opacity: 1; }
@@ -97,6 +98,7 @@
   <svg id="arrow" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#0b1a14" stroke="#ffd76a" stroke-width="2"/><path d="M32 8 L46 40 L32 33 L18 40 Z" fill="#ffd76a"/></svg>
 </div>
 <div id="toast"></div>
+<pre id="dbg" hidden></pre>
 
 <div id="start">
   <h1>🎄 Karácsonyi kincskeresés 🎄</h1>
@@ -126,7 +128,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.1.1';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.1.2';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -256,7 +258,8 @@ function grabGray(src, W, H) {
 }
 
 // Finds where the patch of picture under the tile moved to since the previous frame and shifts the tile with it.
-// Returns false when the patch can't be found (card gone or covered) or is too close to the frame edge.
+// Returns that shift in picture px, or false when the patch can't be found (card gone or covered) or is too close
+// to the frame edge.
 function follow(loc) {
   if (!prevGray) return false;
   const w = tcv.width, h = tcv.height, R = 16;   // R: furthest shift searched per frame, in tracking pixels
@@ -264,7 +267,7 @@ function follow(loc) {
   const cx = (Math.max(...xs) + Math.min(...xs)) / 2 * tk | 0, cy = (Math.max(...ys) + Math.min(...ys)) / 2 * tk | 0;
   // patch reaches past the code into the card's white border: its edges survive blur far better than the code's dots
   const half = Math.min(48, Math.max(6, (Math.max(...xs) - Math.min(...xs)) * tk * .8 | 0));
-  if (cx - half - R < 0 || cy - half - R < 0 || cx + half + R >= w || cy + half + R >= h) return false;
+  if (cx - half - R < 1 || cy - half - R < 1 || cx + half + R >= w - 1 || cy + half + R >= h - 1) return false;
   const diff = (dx, dy, limit) => {
     let s = 0;
     for (let y = -half; y <= half && s < limit; y += 2)
@@ -281,8 +284,21 @@ function follow(loc) {
   // Average brightness mismatch (0-255). Simulated frames: same card sharp-to-blurred scores up to ~29,
   // card gone scores ~60. Not yet tuned on a real camera.
   if (best / samples > 40) return false;
-  for (const q of p) { q.x += bx / tk; q.y += by / tk; }
-  return true;
+  // Refine to a fraction of a tracking pixel: the small extra shift that best explains the remaining brightness
+  // differences, judged by how brightness slopes across the patch (one Lucas-Kanade step). Identical frames give 0.
+  let xx = 0, xy = 0, yy = 0, xt = 0, yt = 0;
+  for (let y = -half; y <= half; y += 2) for (let x = -half; x <= half; x += 2) {
+    const i = (cy + y + by) * w + cx + x + bx, j = (cy + y) * w + cx + x, dt = prevGray[j] - gray[i];
+    const gx = (gray[i + 1] - gray[i - 1] + prevGray[j + 1] - prevGray[j - 1]) / 4;   // slopes averaged over both frames
+    const gy = (gray[i + w] - gray[i - w] + prevGray[j + w] - prevGray[j - w]) / 4;
+    xx += gx * gx; xy += gx * gy; yy += gy * gy; xt += gx * dt; yt += gy * dt;
+  }
+  // Only trusted when the two frames look alike (mismatch under 12 of 255): if one is sharp and the other blurred,
+  // the differences come from the blur, not from movement, and the whole-pixel shift is used as it is.
+  const det = xx * yy - xy * xy, lim = v => det && best / samples < 12 ? Math.max(-1, Math.min(1, v / det)) : 0;
+  const shift = { x: (bx + lim(yy * xt - xy * yt)) / tk, y: (by + lim(xx * yt - xy * xt)) / tk };
+  for (const q of p) { q.x += shift.x; q.y += shift.y; }
+  return shift;   // how far the card moved in the picture since the previous frame
 }
 
 let frameNo = 0;
@@ -314,6 +330,7 @@ function step(src, W, H) {
   const n = qr && onCode(qr.data);
   if (n) lastSeen = { n, loc: qr.location, t: now, live: now };
   else if (followed) lastSeen.live = now;
+  if (lastSeen) lastSeen.shift = followed || null;   // this frame's measured movement, for showTile()
   else if (lastSeen) {
     lastSeen.lost = true;
     if (now - lastSeen.live > 250) lastSeen = null;   // short grace, then let go
@@ -321,12 +338,43 @@ function step(src, W, H) {
   return lastSeen;
 }
 
+// ---- ?debug: live steadiness numbers on screen, for tuning on a real phone ----
+const DEBUG = location.search.includes('debug');
+let dbg = { since: 0, frames: 0, reads: 0, n: 0, slip: 0, lean: 0, turn: 0, last: null };
+
+function debugFrame(tile) {   // once per camera frame, after showTile()
+  const now = performance.now(), deg = 180 / Math.PI;
+  dbg.frames++;
+  let cur = null;
+  if (tile && shown) {
+    if (tile.t === tile.live && tile.t !== dbg.readAt) { dbg.reads++; dbg.readAt = tile.t; }
+    cur = { n: tile.n, x: shown.p.reduce((a, q) => a + q.x, 0) / 4, y: shown.p.reduce((a, q) => a + q.y, 0) / 4, down: shown.down, yaw: shown.yaw,
+            size: Math.hypot(shown.p[1].x - shown.p[0].x, shown.p[1].y - shown.p[0].y) };
+    if (dbg.last && dbg.last.n === cur.n) {
+      const s = tile.shift || { x: 0, y: 0 };
+      dbg.slip += Math.hypot(cur.x - dbg.last.x - s.x, cur.y - dbg.last.y - s.y);   // tile movement the picture's own movement doesn't explain
+      dbg.lean += Math.acos(Math.min(1, cur.down.reduce((a, v, i) => a + v * dbg.last.down[i], 0))) * deg;
+      dbg.turn += Math.abs(Math.atan2(Math.sin(cur.yaw - dbg.last.yaw), Math.cos(cur.yaw - dbg.last.yaw))) * deg;
+      dbg.n++;
+    }
+  }
+  dbg.last = cur;
+  if (now - dbg.since < 1000) return;
+  const per = v => dbg.n ? (v / dbg.n).toFixed(2) : '–';
+  $('dbg').hidden = false;
+  $('dbg').textContent = `v${VERSION}  ${Math.round(dbg.frames * 1000 / (now - dbg.since))} fps  read ${Math.round(100 * dbg.reads / dbg.frames)}%` +
+    `  card ${cur ? Math.round(cur.size) : '–'}px\nper frame: slip ${per(dbg.slip)}px  lean ${per(dbg.lean)}°  turn ${per(dbg.turn)}°`;
+  dbg = { since: now, frames: 0, reads: 0, n: 0, slip: 0, lean: 0, turn: 0, last: cur, readAt: dbg.readAt };
+}
+
 function scan() {
   const v = $('video'), c = $('view'), ctx = c.getContext('2d');
   if (v.videoWidth) {
     if (c.width !== v.videoWidth) { c.width = v.videoWidth; c.height = v.videoHeight; }
     ctx.drawImage(v, 0, 0);
-    showTile(step(v, c.width, c.height), c.width, c.height);
+    const tile = step(v, c.width, c.height);
+    showTile(tile, c.width, c.height);
+    if (DEBUG) debugFrame(tile);
   }
   requestAnimationFrame(scan);
 }
@@ -400,8 +448,11 @@ function showTile(tile, W, H) {
   const target = [tile.loc.topLeftCorner, tile.loc.topRightCorner, tile.loc.bottomRightCorner, tile.loc.bottomLeftCorner];
   if (!shown || shown.n !== tile.n) shown = { n: tile.n, p: target.map(q => ({ x: q.x, y: q.y })), yaw: null, down: null };
   else {
-    // The reader's corners wobble a little every frame. Small changes are blended in slowly (steady tile),
-    // big ones quickly (no trailing behind a moving card).
+    // First move the drawn corners by how far the picture itself moved under the card this frame. A hand-held
+    // phone shakes by a few px per frame; without this step the smoothing below lags behind that real movement
+    // and the tile visibly slips against the card.
+    if (tile.shift) shown.p.forEach(q => { q.x += tile.shift.x; q.y += tile.shift.y; });
+    // What is left is the reader's wobble. Small differences are blended in slowly (steady tile), big ones quickly.
     const size = Math.hypot(target[1].x - target[0].x, target[1].y - target[0].y);
     const move = Math.max(...target.map((q, i) => Math.hypot(q.x - shown.p[i].x, q.y - shown.p[i].y)));
     const k = Math.min(1, Math.max(.15, move / size * 4));

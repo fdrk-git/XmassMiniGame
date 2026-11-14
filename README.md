@@ -31,7 +31,7 @@ The game text is in Hungarian. Progress is not saved: reloading restarts the hun
 python3 -m http.server 8123
 ```
 
-Then open `http://localhost:8123`. Opening `http://localhost:8123/?test` runs a small self-check of the game logic; results are in the browser console.
+Then open `http://localhost:8123`. Adding `?debug` to the game's address shows live numbers on screen (frame rate, how often the code is read, and how much the tile slips, leans and turns per frame) for tuning steadiness on a real phone. Opening `http://localhost:8123/?test` runs a small self-check of the game logic; results are in the browser console.
 
 ## Versions
 
