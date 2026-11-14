@@ -80,7 +80,7 @@
   #start h1 { font: 700 40px/1.1 Georgia, serif; color: #ffe596; text-shadow: var(--ex); }
   #start p { font: 18px/1.5 Georgia, serif; color: #fff6d0; }
   #start .small { font: 14px system-ui, sans-serif; opacity: .7; }
-  button { padding: 14px 28px; border: 0; border-radius: 999px; background: #ffd76a; color: #5a0a18; font-weight: 700; font-size: 20px; }
+  button { padding: 14px 28px; border: 0; border-radius: 999px; background: #ffd76a; color: #5a0a18; }
   #go { margin-top: 6px; padding: 16px 38px; font: 700 21px Georgia, serif; color: #5a0715; background: linear-gradient(#ffe596, #e3b23c);
         box-shadow: 0 5px 0 #a87a14, 0 12px 26px rgba(0, 0, 0, .45), 0 0 28px rgba(255, 215, 106, .35); animation: breathe 2.8s ease-in-out infinite; }
   #go:active { transform: translateY(3px); box-shadow: 0 2px 0 #a87a14, 0 6px 14px rgba(0, 0, 0, .45); }
@@ -159,7 +159,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.1.3';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.1.4';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -199,7 +199,7 @@ let found = 0, heading = null, lastSeen = null, toastTimer;
 
 function render() {
   $('slots').innerHTML = [...LETTERS].map((c, i) =>
-    (i === GAP_AFTER ? '&nbsp;' : '') + (i < found ? `<b${i === landing ? ' style="visibility:hidden"' : ''}>${c}</b>` : '<i>•</i>')).join('');
+    (i === GAP_AFTER ? '&nbsp;' : '') + (i < found ? `<b${i === landing ? ' style="color:transparent;text-shadow:none"' : ''}>${c}</b>` : '<i>•</i>')).join('');
   $('hint').innerHTML = (found === LETTERS.length ? 'Megvan mind! ' : '') + HINTS[found] +
     (BEARINGS[found] != null ? '<small id="tip">Az iránytűhöz tartsd vízszintesen a telefont</small>' : '');
   document.body.classList.toggle('done', found === LETTERS.length && landing < 0);   // the finale waits for the last letter to land
