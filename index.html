@@ -41,34 +41,62 @@
   #tile u { position: absolute; bottom: 152px; width: 84px; height: 60px; border: 15px solid #ffd76a; border-radius: 50%;
             box-shadow: inset 0 0 8px #8a6209, 0 0 0 2px #b98a1c; }
   #tile .knot { left: -17px; bottom: 150px; width: 34px; height: 34px; border-width: 17px; background: #ffd76a; }
-  #slots { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center;
-           font: 700 30px Georgia, serif; letter-spacing: 6px; text-shadow: 0 2px 8px #000; transition: font-size .8s; }
   /* 3D letters: stacked darker copies underneath read as the side of a thick gold letter */
   :root { --ex: 0 1px 0 #e3b23c, 0 2px 0 #cc9a2a, 0 3px 0 #b3821b, 0 4px 0 #976b10, 0 5px 0 #7a5608, 0 8px 10px rgba(0, 0, 0, .75); }
-  #slots b { display: inline-block; color: #ffe596; text-shadow: var(--ex); transform: perspective(240px) rotateX(16deg); }
-  #slots i { opacity: .5; font-style: normal; }
-  .done #slots { font-size: 44px; top: 30%; }
+  /* the nine letter slots: gold-framed red chips, sized in em so the row always fits the screen width */
+  #slots, #preview { font: 700 min(30px, calc((100vw - 16px) / 11.6)) Georgia, serif; white-space: nowrap; text-align: center; }
+  #slots { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 0; right: 0; }
+  #slots b, #slots i, #preview i { display: inline-block; width: 1.05em; height: 1.4em; line-height: 1.4em; margin: 0 .08em; border-radius: .3em;
+      border: .06em solid #e3b23c; background: linear-gradient(#a8142e, #5a0715); font-style: normal;
+      box-shadow: 0 .08em .25em rgba(0, 0, 0, .6), inset 0 0 .35em rgba(0, 0, 0, .45); }
+  #slots b { color: #ffe596; text-shadow: var(--ex); }
+  #slots i, #preview i { color: rgba(255, 215, 106, .35); background: linear-gradient(rgba(120, 12, 30, .55), rgba(60, 4, 14, .55)); border-color: rgba(227, 178, 60, .55); }
+  .done #slots { top: 30%; }
   .done #slots b { animation: glow 1.5s infinite alternate; }
-  @keyframes glow { to { text-shadow: var(--ex), 0 0 24px #ffd76a, 0 0 48px #e33; } }
-  #panel { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); padding: 14px 16px;
-           background: rgba(120, 12, 30, .88); border: 2px solid #ffd76a; border-radius: 18px;
+  @keyframes glow { to { text-shadow: var(--ex), 0 0 24px #ffd76a, 0 0 48px #e33; box-shadow: 0 0 .7em #ffd76a, inset 0 0 .35em rgba(0, 0, 0, .45); } }
+  /* the hint: a cream gift tag with a punched hole */
+  #panel { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); padding: 14px 16px 14px 36px;
+           background: linear-gradient(#fff9e0, #f4e0aa); color: #5a0715; border: 2px solid #e3b23c; border-radius: 18px;
+           box-shadow: 0 6px 18px rgba(0, 0, 0, .45), inset 0 0 0 4px rgba(255, 255, 255, .35);
            display: flex; align-items: center; gap: 14px; }
-  #hint { flex: 1; font-size: 18px; line-height: 1.35; }
-  #tip { display: block; margin-top: 6px; font-size: 12px; opacity: .75; }
-  #arrow { width: 64px; height: 64px; flex: none; transition: transform .15s linear; }
+  #panel::before { content: ''; position: absolute; left: 12px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%;
+                   background: #3a0410; box-shadow: inset 0 1px 3px #000, 0 0 0 2px #e3b23c; }
+  #hint { flex: 1; font: 18px/1.4 Georgia, serif; }
+  #tip { display: block; margin-top: 6px; font: 12px system-ui, sans-serif; color: #8c0f24; }
+  #arrow { width: 64px; height: 64px; flex: none; transition: transform .15s linear; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .4)); }
   /* a found letter in flight from its statue to its place in the top row; moved by fly() */
   .fly { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; font: 700 120px/1 Georgia, serif; color: #ffe596;
          text-shadow: 0 2px 0 #e3b23c, 0 4px 0 #cc9a2a, 0 6px 0 #b3821b, 0 8px 0 #976b10, 0 10px 0 #7a5608,
                       0 14px 16px rgba(0, 0, 0, .7), 0 0 40px #ffd76a; }
   #dbg { position: fixed; left: 8px; top: 70px; z-index: 6; padding: 6px 8px; font: 12px/1.4 monospace; background: rgba(0, 0, 0, .65); pointer-events: none; }
-  #toast { position: fixed; top: 40%; left: 50%; transform: translateX(-50%); padding: 12px 18px; border-radius: 14px;
-           background: rgba(0, 0, 0, .8); font-size: 18px; white-space: nowrap; opacity: 0; transition: opacity .3s; }
+  #toast { position: fixed; top: 40%; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 14px; max-width: 92vw;
+           background: linear-gradient(#fff9e0, #f4e0aa); color: #5a0715; border: 2px solid #e3b23c; box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
+           font: 18px Georgia, serif; white-space: nowrap; opacity: 0; transition: opacity .3s; }
   #toast.on { opacity: 1; }
-  #start { position: fixed; inset: 0; display: grid; place-content: center; gap: 22px; padding: 28px; text-align: center;
-           background: radial-gradient(circle at 50% 30%, #1d5a3c, #0b1a14); }
-  #start h1 { font: 700 30px Georgia, serif; color: #ffd76a; }
-  #start p { font-size: 17px; line-height: 1.5; }
-  button { font: 700 20px inherit; padding: 14px 28px; border: 0; border-radius: 999px; background: #ffd76a; color: #5a0a18; }
+  #start { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 20px; padding: 28px; text-align: center;
+           background: radial-gradient(circle at 50% 28%, #226a47, #0e2a1e 60%, #07140e); }
+  #start > .snow, #start > .lights { position: absolute; z-index: 0; }
+  #start > :not(.snow):not(.lights) { position: relative; z-index: 1; }
+  #start h1 { font: 700 40px/1.1 Georgia, serif; color: #ffe596; text-shadow: var(--ex); }
+  #start p { font: 18px/1.5 Georgia, serif; color: #fff6d0; }
+  #start .small { font: 14px system-ui, sans-serif; opacity: .7; }
+  button { padding: 14px 28px; border: 0; border-radius: 999px; background: #ffd76a; color: #5a0a18; font-weight: 700; font-size: 20px; }
+  #go { margin-top: 6px; padding: 16px 38px; font: 700 21px Georgia, serif; color: #5a0715; background: linear-gradient(#ffe596, #e3b23c);
+        box-shadow: 0 5px 0 #a87a14, 0 12px 26px rgba(0, 0, 0, .45), 0 0 28px rgba(255, 215, 106, .35); animation: breathe 2.8s ease-in-out infinite; }
+  #go:active { transform: translateY(3px); box-shadow: 0 2px 0 #a87a14, 0 6px 14px rgba(0, 0, 0, .45); }
+  @keyframes breathe { 50% { box-shadow: 0 5px 0 #a87a14, 0 12px 26px rgba(0, 0, 0, .45), 0 0 44px rgba(255, 215, 106, .6); } }
+  /* falling snow (flakes are made by decorate()) and a string of lights; used on the start screen, snow also on the finale */
+  .snow { inset: 0; overflow: hidden; pointer-events: none; }
+  .snow i { position: absolute; top: -12px; border-radius: 50%; background: #fff; animation: fall linear infinite; }
+  @keyframes fall { to { transform: translate(40px, calc(100vh + 24px)); } }
+  #finaleSnow { position: fixed; z-index: 4; display: none; }
+  .done #finaleSnow { display: block; }
+  .lights { top: 0; left: 0; right: 0; height: 34px; pointer-events: none; }
+  .lights svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .lights i { position: absolute; width: 9px; height: 13px; margin-left: -4.5px; border-radius: 50% 50% 45% 45%; background: currentColor;
+              box-shadow: 0 0 10px 1px currentColor; animation: bulb 2.4s ease-in-out infinite alternate; }
+  @keyframes bulb { from { opacity: .45; } }
+  @media (prefers-reduced-motion: reduce) { .snow i, .lights i, #go { animation: none; } }
   [hidden] { display: none !important; }
 
   /* setup / print mode */
@@ -95,18 +123,21 @@
 <div id="slots"></div>
 <div id="panel" hidden>
   <div id="hint"></div>
-  <svg id="arrow" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#0b1a14" stroke="#ffd76a" stroke-width="2"/><path d="M32 8 L46 40 L32 33 L18 40 Z" fill="#ffd76a"/></svg>
+  <svg id="arrow" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#5a0715" stroke="#e3b23c" stroke-width="3"/><circle cx="32" cy="32" r="25" fill="none" stroke="#ffd76a" stroke-opacity=".45" stroke-dasharray="1 7.85"/><path d="M32 9 L45 41 L32 34 L19 41 Z" fill="#ffd76a" stroke="#fff6d0" stroke-width="1.2" stroke-linejoin="round"/></svg>
 </div>
 <div id="toast"></div>
 <pre id="dbg" hidden></pre>
 
 <div id="start">
-  <h1>🎄 Karácsonyi kincskeresés 🎄</h1>
+  <div class="snow"></div><div class="lights"></div>
+  <h1>Karácsonyi<br>kincskeresés</h1>
+  <div id="preview" aria-hidden="true"></div>
   <p>Kilenc betű rejtőzik a lakásban.<br>Keresd meg őket a kamerával – sorban!</p>
-  <p style="font-size:14px;opacity:.8">Engedélyezd a kamerát és a mozgásérzékelőt.</p>
-  <button id="go">Kezdjük! ✨</button>
+  <button id="go">Kezdjük!</button>
+  <p class="small">Engedélyezd a kamerát és a mozgásérzékelőt.</p>
   <p id="err" style="color:#ff9c9c"></p>
 </div>
+<div id="finaleSnow" class="snow"></div>
 
 <div id="setup" hidden>
   <div class="noprint">
@@ -128,7 +159,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.1.2';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.1.3';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -181,6 +212,25 @@ function turnArrow() {
   $('arrow').style.display = show ? '' : 'none';   // an <svg> has no .hidden property
   if (show) $('arrow').style.transform = `rotate(${b - heading}deg)`;
 }
+
+// Decorations: falling snow (start screen and finale) and a string of lights across the top of the start screen.
+function decorate() {
+  for (const box of document.querySelectorAll('.snow')) for (let i = 0; i < 28; i++) {
+    const f = document.createElement('i'), size = 3 + Math.random() * 5;
+    f.style.cssText = `left:${Math.random() * 100}%;width:${size}px;height:${size}px;opacity:${.35 + Math.random() * .55};` +
+      `animation-duration:${6 + Math.random() * 8}s;animation-delay:${-Math.random() * 14}s`;
+    box.append(f);
+  }
+  const swags = 3, sag = 10, bulbs = 12, colours = ['#ff3b4f', '#ffd76a', '#4fd37f'];
+  // the wire hangs in three swags; bulbs sit on it: y = 4 + 4 * sag * t * (1 - t) along each swag (t from 0 to 1)
+  let wire = '';
+  for (let k = 0; k < swags; k++) { const x0 = 100 * k / swags, x1 = 100 * (k + 1) / swags; wire += `${k ? 'L' : 'M'}${x0} 4 Q${(x0 + x1) / 2} ${4 + 2 * sag} ${x1} 4 `; }
+  $('start').querySelector('.lights').innerHTML = `<svg viewBox="0 0 100 34" preserveAspectRatio="none"><path d="${wire}" fill="none" stroke="#0a2a1d" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>` +
+    Array.from({ length: bulbs }, (_, i) => { const t = ((i + .5) / bulbs * swags) % 1;
+      return `<i style="left:${(i + .5) / bulbs * 100}%;top:${4 + 4 * sag * t * (1 - t)}px;color:${colours[i % 3]};animation-delay:${-i * .37}s"></i>`; }).join('');
+  $('preview').innerHTML = [...LETTERS].map((_, i) => (i === GAP_AFTER ? '&nbsp;' : '') + '<i>•</i>').join('');
+}
+decorate();
 
 let landing = -1;   // index of the letter now flying to its place in the top row (hidden there until it lands), or -1
 
