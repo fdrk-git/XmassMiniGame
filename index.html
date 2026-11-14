@@ -126,7 +126,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const VERSION = '0.1.0';   // bump with every release; selfUpdate() below compares it with the server's copy
+const VERSION = '0.1.1';   // bump with every release; selfUpdate() below compares it with the server's copy
 
 // A browser may show a saved old copy of this page. Ask the server for the current one and, if its version
 // differs, reload under a new address (?v=...) that no saved copy exists for.
@@ -509,11 +509,16 @@ if (setup) {
     // Size 2 on purpose: the smallest size (1) has no alignment mark, and without it the reader fails on tilted
     // cards (simulated: size 1 unreadable at 20°, size 2 readable to 55°). 'H' = most damage tolerance.
     const q = qrcode(2, 'H'); q.addData('mx' + (i + 1)); q.make();
-    // one PNG per card (at least 1024 px, 4-cell white border) serves the printed card, the download and full screen
-    const n = q.getModuleCount() + 8, cell = Math.ceil(1024 / n), c = document.createElement('canvas'), x = c.getContext('2d');
+    // One PNG per card (at least 1024 px) serves the printed card, the download and full screen.
+    // Statue colours: deep red dots on cream inside a gold-and-red frame. The reader needs dark dots on a light
+    // ground with a clear light margin of 4 cells, so the dots stay the darkest colour and the frame sits outside it.
+    const m = q.getModuleCount(), n = m + 12, cell = Math.ceil(1024 / n), c = document.createElement('canvas'), x = c.getContext('2d');
     c.width = c.height = n * cell;
-    x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
-    x.translate(4 * cell, 4 * cell); q.renderTo2dContext(x, cell);
+    [['#5a0715', 0], ['#e3b23c', .35], ['#5a0715', 1.5], ['#fff6d0', 2]].forEach(([colour, inset]) => {
+      x.fillStyle = colour; x.fillRect(inset * cell, inset * cell, c.width - 2 * inset * cell, c.height - 2 * inset * cell);
+    });
+    x.fillStyle = '#5a0715';
+    for (let r = 0; r < m; r++) for (let k = 0; k < m; k++) if (q.isDark(r, k)) x.fillRect((k + 6) * cell, (r + 6) * cell, cell, cell);
     const png = c.toDataURL('image/png');
     return `<div><img src="${png}" alt="QR ${i + 1}">${i + 1}<span class="noprint"><br>` +
       `<a class="btn" download="card-${i + 1}.png" href="${png}">Download</a><button class="btn full">Full screen</button></span></div>`;
