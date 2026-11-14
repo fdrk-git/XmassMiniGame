@@ -11,10 +11,13 @@
   video { display: none; }
   #slots { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 0; right: 0; text-align: center;
            font: 700 30px Georgia, serif; letter-spacing: 6px; text-shadow: 0 2px 8px #000; transition: font-size .8s; }
-  #slots b { color: #ffd76a; }
+  /* 3D letters: stacked darker copies underneath read as the side of a thick gold letter */
+  :root { --ex: 0 1px 0 #e3b23c, 0 2px 0 #cc9a2a, 0 3px 0 #b3821b, 0 4px 0 #976b10, 0 5px 0 #7a5608, 0 8px 10px rgba(0, 0, 0, .75); }
+  #slots b { display: inline-block; color: #ffe596; text-shadow: var(--ex); transform: perspective(240px) rotateX(16deg); }
   #slots i { opacity: .5; font-style: normal; }
-  .done #slots { font-size: 44px; top: 30%; animation: glow 1.5s infinite alternate; }
-  @keyframes glow { to { text-shadow: 0 0 24px #ffd76a, 0 0 48px #e33; } }
+  .done #slots { font-size: 44px; top: 30%; }
+  .done #slots b { animation: glow 1.5s infinite alternate; }
+  @keyframes glow { to { text-shadow: var(--ex), 0 0 24px #ffd76a, 0 0 48px #e33; } }
   #panel { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); padding: 14px 16px;
            background: rgba(120, 12, 30, .88); border: 2px solid #ffd76a; border-radius: 18px;
            display: flex; align-items: center; gap: 14px; }
@@ -22,9 +25,16 @@
   #tip { display: block; margin-top: 6px; font-size: 12px; opacity: .75; }
   #arrow { width: 64px; height: 64px; flex: none; transition: transform .15s linear; }
   #pop { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
-         font: 700 200px Georgia, serif; color: #ffd76a; text-shadow: 0 0 40px #e33; opacity: 0; }
-  #pop.go { animation: pop 1.6s ease-out; }
-  @keyframes pop { 0% { opacity: 0; transform: scale(.2) rotate(-20deg); } 30% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0; transform: scale(1.6); } }
+         font: 700 200px Georgia, serif; color: #ffe596; opacity: 0;
+         text-shadow: 0 2px 0 #e3b23c, 0 4px 0 #d8a632, 0 6px 0 #cc9a2a, 0 8px 0 #c08e22, 0 10px 0 #b3821b, 0 12px 0 #a57615,
+                      0 14px 0 #976b10, 0 16px 0 #88600c, 0 18px 0 #7a5608, 0 26px 30px rgba(0, 0, 0, .8), 0 0 60px #e33; }
+  #pop.go { animation: pop 1.8s ease-out; }
+  @keyframes pop {
+    0%   { opacity: 0; transform: perspective(700px) scale(.2) rotateY(-180deg); }
+    35%  { opacity: 1; transform: perspective(700px) scale(1.1) rotateY(0deg); }
+    70%  { opacity: 1; transform: perspective(700px) scale(1) rotateY(25deg); }
+    100% { opacity: 0; transform: perspective(700px) scale(1.5) rotateY(0deg); }
+  }
   #toast { position: fixed; top: 40%; left: 50%; transform: translateX(-50%); padding: 12px 18px; border-radius: 14px;
            background: rgba(0, 0, 0, .8); font-size: 18px; white-space: nowrap; opacity: 0; transition: opacity .3s; }
   #toast.on { opacity: 1; }
@@ -43,6 +53,8 @@
   #cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   #cards div { border: 1px dashed #999; padding: 12px; text-align: center; break-inside: avoid; }
   #cards svg { width: 100%; height: auto; }
+  .open { display: block; margin: 8px auto 0; padding: 6px 12px; width: fit-content; border-radius: 999px;
+          background: #ffd76a; color: #5a0a18; font-weight: 700; text-decoration: none; }
   @media print { .noprint { display: none; } }
 </style>
 </head>
@@ -118,8 +130,9 @@ function render() {
 
 function turnArrow() {
   const b = BEARINGS[found];
-  $('arrow').hidden = b == null || heading == null;
-  if (!$('arrow').hidden) $('arrow').style.transform = `rotate(${b - heading}deg)`;
+  const show = b != null && heading != null;
+  $('arrow').style.display = show ? '' : 'none';   // an <svg> has no .hidden property
+  if (show) $('arrow').style.transform = `rotate(${b - heading}deg)`;
 }
 
 function toast(msg) {
@@ -155,9 +168,58 @@ function decode(src, sx, sy, sw, sh, maxSide) {
   return qr;
 }
 
-function findCode(src, W, H) {
+// --- motion tracking: decoding fails on blurred frames, so between decodes the tile follows the picture itself ---
+const TRACK = 320;   // long side of the small gray frame used for tracking
+const tcv = document.createElement('canvas'), tctx = tcv.getContext('2d', { willReadFrequently: true });
+let gray = null, prevGray = null, tk = 1;
+
+function grabGray(src, W, H) {
+  tk = TRACK / Math.max(W, H);
+  const w = W * tk | 0, h = H * tk | 0;
+  if (tcv.width !== w || tcv.height !== h) { tcv.width = w; tcv.height = h; gray = null; }
+  tctx.drawImage(src, 0, 0, W, H, 0, 0, w, h);
+  const d = tctx.getImageData(0, 0, w, h).data, a = new Uint8Array(w * h), g = new Uint8Array(w * h);
+  for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 1];   // green is close enough to brightness
+  // soften (5-pixel cross) so a sharp frame and a motion-blurred frame of the same card still look alike
+  for (let i = 2 * w; i < a.length - 2 * w; i++) g[i] = (a[i] * 2 + a[i - 1] + a[i + 1] + a[i - 2] + a[i + 2] + a[i - w] + a[i + w] + a[i - 2 * w] + a[i + 2 * w]) / 10;
+  prevGray = gray; gray = g;
+}
+
+// Finds where the patch of picture under the tile moved to since the previous frame and shifts the tile with it.
+// Returns false when the patch can't be found (card gone or covered) or is too close to the frame edge.
+function follow(loc) {
+  if (!prevGray) return false;
+  const w = tcv.width, h = tcv.height, R = 16;   // R: furthest shift searched per frame, in tracking pixels
+  const p = Object.values(loc).filter(Boolean), xs = p.map(q => q.x), ys = p.map(q => q.y);
+  const cx = (Math.max(...xs) + Math.min(...xs)) / 2 * tk | 0, cy = (Math.max(...ys) + Math.min(...ys)) / 2 * tk | 0;
+  // patch reaches past the code into the card's white border: its edges survive blur far better than the code's dots
+  const half = Math.min(48, Math.max(6, (Math.max(...xs) - Math.min(...xs)) * tk * .8 | 0));
+  if (cx - half - R < 0 || cy - half - R < 0 || cx + half + R >= w || cy + half + R >= h) return false;
+  const diff = (dx, dy, limit) => {
+    let s = 0;
+    for (let y = -half; y <= half && s < limit; y += 2)
+      for (let x = -half; x <= half; x += 2)
+        s += Math.abs(prevGray[(cy + y) * w + cx + x] - gray[(cy + y + dy) * w + cx + x + dx]);
+    return s;
+  };
+  let best = diff(0, 0, Infinity), bx = 0, by = 0;   // staying put wins ties
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+    const s = diff(dx, dy, best);
+    if (s < best) { best = s; bx = dx; by = dy; }
+  }
+  const samples = (Math.floor(half) + 1) ** 2;   // patch is sampled every 2nd pixel each way
+  // Average brightness mismatch (0-255). Simulated frames: same card sharp-to-blurred scores up to ~29,
+  // card gone scores ~60. Not yet tuned on a real camera.
+  if (best / samples > 40) return false;
+  for (const q of p) { q.x += bx / tk; q.y += by / tk; }
+  return true;
+}
+
+let frameNo = 0;
+
+function findCode(src, W, H, wholeFrame) {
   let qr = null;
-  if (lastSeen && performance.now() - lastSeen.t < 600) {
+  if (lastSeen) {
     // a card was just here: look closely around its last position first (small area, so sharp and fast)
     const p = Object.values(lastSeen.loc).filter(Boolean), xs = p.map(q => q.x), ys = p.map(q => q.y);
     const r = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) * 1.5;
@@ -166,7 +228,27 @@ function findCode(src, W, H) {
     qr = decode(src, x0, y0, Math.min(W, cx + r) - x0, Math.min(H, cy + r) - y0, 480);
   }
   // shortcut: whole frame is searched at 800px, so far-away cards need her to step closer; raise if range is too short
-  return qr || decode(src, 0, 0, W, H, 800);
+  return qr || (wholeFrame ? decode(src, 0, 0, W, H, 800) : null);
+}
+
+// Processes one camera frame; returns the tile to draw ({n, loc}) or null.
+function step(src, W, H) {
+  const now = performance.now();
+  grabGray(src, W, H);
+  // move the held tile with the picture first, so the close-up search below looks in the right place.
+  // Tracking alone drifts, so it is trusted for at most 2.5 s without a fresh decode.
+  // Once the patch is lost it is not picked up again (it would lock onto the background); only a decode revives it.
+  const followed = lastSeen && !lastSeen.lost && now - lastSeen.t < 2500 && follow(lastSeen.loc);
+  // while the tile is following, the close-up search is enough; the slower whole-frame search runs every 4th frame
+  const qr = findCode(src, W, H, !followed || ++frameNo % 4 === 0);
+  const n = qr && onCode(qr.data);
+  if (n) lastSeen = { n, loc: qr.location, t: now, live: now };
+  else if (followed) lastSeen.live = now;
+  else if (lastSeen) {
+    lastSeen.lost = true;
+    if (now - lastSeen.live > 250) lastSeen = null;   // short grace, then let go
+  }
+  return lastSeen;
 }
 
 function scan() {
@@ -174,11 +256,8 @@ function scan() {
   if (v.videoWidth) {
     if (c.width !== v.videoWidth) { c.width = v.videoWidth; c.height = v.videoHeight; }
     ctx.drawImage(v, 0, 0);
-    const qr = findCode(v, c.width, c.height);
-    const n = qr && onCode(qr.data);
-    if (n) lastSeen = { n, loc: qr.location, t: performance.now() };
-    // keep covering for a moment after a missed frame so the QR never flashes through
-    if (lastSeen && performance.now() - lastSeen.t < 600) cover(ctx, lastSeen);
+    const tile = step(v, c.width, c.height);
+    if (tile) cover(ctx, tile);
   }
   requestAnimationFrame(scan);
 }
@@ -190,11 +269,19 @@ function cover(ctx, { n, loc }) {
   ctx.beginPath();
   p.forEach((q, i) => ctx[i ? 'lineTo' : 'moveTo'](cx + (q.x - cx) * 1.35, cy + (q.y - cy) * 1.35));
   ctx.closePath();
-  ctx.fillStyle = '#8c0f24'; ctx.fill();
+  const tile = ctx.createRadialGradient(cx, cy - size * .3, size * .1, cx, cy, size);
+  tile.addColorStop(0, '#c9213f'); tile.addColorStop(1, '#6a0919');
+  ctx.fillStyle = tile; ctx.fill();
   ctx.lineWidth = size * .06; ctx.strokeStyle = '#ffd76a'; ctx.stroke();
-  ctx.fillStyle = '#ffd76a'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `700 ${size * .8}px Georgia, serif`;
-  ctx.fillText(n <= found ? LETTERS[n - 1] : '🎁', cx, cy);
+  if (n > found) return void ctx.fillText('🎁', cx, cy);
+  // 3D letter: darker copies stepped down-right form the side, a light-to-gold gradient forms the face
+  const L = LETTERS[n - 1], d = size * .012;
+  for (let i = 7; i > 0; i--) { ctx.fillStyle = i > 4 ? '#6e4c06' : '#a87a14'; ctx.fillText(L, cx + i * d * .5, cy + i * d); }
+  const face = ctx.createLinearGradient(0, cy - size * .35, 0, cy + size * .35);
+  face.addColorStop(0, '#fff6d0'); face.addColorStop(.5, '#ffd76a'); face.addColorStop(1, '#e2a82c');
+  ctx.fillStyle = face; ctx.fillText(L, cx, cy);
 }
 
 function askCompass() {
@@ -240,7 +327,9 @@ if (setup) {
   s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
   s.onload = () => $('cards').innerHTML = [...LETTERS].map((_, i) => {
     const q = qrcode(0, 'M'); q.addData('mx' + (i + 1)); q.make();
-    return `<div>${q.createSvgTag({ scalable: true, margin: 4 })}${i + 1}</div>`;
+    const svg = q.createSvgTag({ scalable: true, margin: 4 });
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
+    return `<div>${svg}${i + 1}<a class="noprint open" target="_blank" href="${url}">Open image</a></div>`;
   }).join('');
   document.body.append(s);
 } else render();
