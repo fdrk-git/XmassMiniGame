@@ -1,0 +1,157 @@
+* { box-sizing: border-box; margin: 0; }
+html, body { height: 100%; background: #0b1a14; color: #fff; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+video { display: none; }
+/* What hides a QR code: a 300px box that showTile() maps onto the card in 3D. On it: a shadow on the floor, a
+   stepped round plinth, and (in .turn, which faces the camera) a contact shadow and the upright statue. */
+#tile, #tile .pop, #tile .plinth, #tile .turn, #tile .stand, #tile .rise { transform-style: preserve-3d; }
+#tile .pop { position: absolute; inset: 0; transform-origin: 150px 150px; }
+#tile.leave .pop { animation: tileOut .2s ease-in forwards; }
+@keyframes tileOut { to { transform: scale3d(0, 0, 0); } }
+#tile { position: fixed; left: 0; top: 0; width: 300px; height: 300px; transform-origin: 0 0; pointer-events: none; }
+#tile .floor { position: absolute; left: -150px; top: -150px; width: 600px; height: 600px; border-radius: 50%;
+               background: radial-gradient(closest-side, rgba(0, 0, 0, .6) 72%, transparent); }
+#tile .plinth, #tile .turn, #tile .stand, #tile .rise { position: absolute; left: 0; top: 0; width: 0; height: 0; }
+#tile .plinth { left: 150px; top: 150px; }
+#tile .plinth i { position: absolute; border-radius: 50%; }
+#tile .plinth svg { position: absolute; left: -220px; top: -220px; width: 440px; height: 440px; transform: translateZ(-40px); }
+#tile .contact { position: absolute; left: -150px; top: -42px; width: 300px; height: 84px; border-radius: 50%;
+                 background: radial-gradient(closest-side, rgba(0, 0, 0, .75), transparent); }
+#tile .stand { transform: rotateX(90deg); }
+#tile .rise { animation: rise .7s cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes rise { from { transform: scale(0); } }
+#tile span { position: absolute; left: 0; bottom: -54px; font: 700 360px/1 Georgia, serif; white-space: nowrap; }
+#tile .edge { color: #fff8dc; transform: translate(calc(-50% - 3px), -3px) translateZ(-38px); }
+#tile .front { transform: translateX(-50%) translateZ(-40px); color: transparent; -webkit-background-clip: text; background-clip: text;
+               background-image: linear-gradient(115deg, #e9b63e, #ffe7a0 20%, #d39a22 42%, #fffbe6 50%, #d39a22 58%, #ffd76a 80%, #c58c1c);
+               background-size: 300% 100%; animation: sheen 5s ease-in-out infinite; }
+@keyframes sheen { from { background-position: 100% 0; } to { background-position: 0 0; } }
+#tile b { position: absolute; font: 400 64px serif; color: #fffbe6; text-shadow: 0 0 14px #ffd76a; animation: twinkle 2.6s infinite both; }
+@keyframes twinkle { 0%, 100% { opacity: 0; transform: translateZ(-70px) scale(.2); } 50% { opacity: 1; transform: translateZ(-70px) scale(1); } }
+#tile .box { position: absolute; left: -95px; bottom: 0; width: 190px; height: 160px; box-shadow: inset 0 0 34px rgba(0, 0, 0, .4);
+             background: linear-gradient(90deg, transparent 38%, #b98a1c 38%, #ffe08a 50%, #b98a1c 62%, transparent 62%), linear-gradient(#cf2444, #7a0d22); }
+#tile .lid { height: 190px; bottom: 65px; transform: rotateX(90deg);
+             background: linear-gradient(90deg, transparent 38%, #e3b23c 38% 62%, transparent 62%),
+                         linear-gradient(transparent 38%, #e3b23c 38% 62%, transparent 62%), #d92a4b; }
+#tile u { position: absolute; bottom: 152px; width: 84px; height: 60px; border: 15px solid #ffd76a; border-radius: 50%;
+          box-shadow: inset 0 0 8px #8a6209, 0 0 0 2px #b98a1c; }
+#tile .knot { left: -17px; bottom: 150px; width: 34px; height: 34px; border-width: 17px; background: #ffd76a; }
+/* 3D letters: stacked darker copies underneath read as the side of a thick gold letter */
+:root { --ex: 0 1px 0 #e3b23c, 0 2px 0 #cc9a2a, 0 3px 0 #b3821b, 0 4px 0 #976b10, 0 5px 0 #7a5608, 0 8px 10px rgba(0, 0, 0, .75); }
+/* the nine letter slots: gold-framed red chips, sized in em so the row always fits the screen width */
+#slots, #preview { font: 700 min(30px, calc((100vw - 16px) / 11.6)) Georgia, serif; white-space: nowrap; text-align: center; }
+#slots { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 0; right: 0; }
+#slots b, #slots i, #preview i { display: inline-block; width: 1.05em; height: 1.4em; line-height: 1.4em; margin: 0 .08em; border-radius: .3em;
+    border: .06em solid #e3b23c; background: linear-gradient(#a8142e, #5a0715); font-style: normal;
+    box-shadow: 0 .08em .25em rgba(0, 0, 0, .6), inset 0 0 .35em rgba(0, 0, 0, .45); }
+#slots b { color: #ffe596; text-shadow: var(--ex); }
+#slots i, #preview i { color: rgba(255, 215, 106, .35); background: linear-gradient(rgba(120, 12, 30, .55), rgba(60, 4, 14, .55)); border-color: rgba(227, 178, 60, .55); }
+.done #slots { top: 30%; }
+.done #slots b { animation: glow 1.5s infinite alternate; }
+@keyframes glow { to { text-shadow: var(--ex), 0 0 .25em rgba(255, 215, 106, .5); box-shadow: 0 0 .8em rgba(255, 215, 106, .75), inset 0 0 .35em rgba(0, 0, 0, .45); } }
+/* the hint: a cream gift tag with a punched hole */
+#panel { position: fixed; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom)); padding: 14px 16px 14px 36px;
+         background: linear-gradient(#fff9e0, #f4e0aa); color: #5a0715; border: 2px solid #e3b23c; border-radius: 18px;
+         box-shadow: 0 6px 18px rgba(0, 0, 0, .45), inset 0 0 0 4px rgba(255, 255, 255, .35);
+         display: flex; align-items: center; gap: 14px; }
+#panel::before { content: ''; position: absolute; left: 12px; top: 50%; width: 12px; height: 12px; margin-top: -6px; border-radius: 50%;
+                 background: #3a0410; box-shadow: inset 0 1px 3px #000, 0 0 0 2px #e3b23c; }
+#hint { flex: 1; font: 18px/1.4 Georgia, serif; }
+#tip { display: block; margin-top: 6px; font: 12px system-ui, sans-serif; color: #8c0f24; }
+#arrow { width: 64px; height: 64px; flex: none; transition: transform .15s linear; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .4)); }
+/* a found letter in flight from its statue to its place in the top row; moved by fly() */
+.fly { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; font: 700 120px/1 Georgia, serif; color: #ffe596;
+       text-shadow: 0 2px 0 #e3b23c, 0 4px 0 #cc9a2a, 0 6px 0 #b3821b, 0 8px 0 #976b10, 0 10px 0 #7a5608,
+                    0 14px 16px rgba(0, 0, 0, .7), 0 0 40px #ffd76a; }
+.spark { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; color: #fff3b8; text-shadow: 0 0 10px #ffd76a, 0 0 3px #fff; line-height: 1; }
+.ring { position: fixed; z-index: 5; pointer-events: none; border: 3px solid #ffd76a; border-radius: 50%; box-shadow: 0 0 14px #ffd76a, inset 0 0 10px #ffd76a; }
+#dbg { position: fixed; left: 8px; top: 70px; z-index: 6; padding: 6px 8px; font: 12px/1.4 monospace; background: rgba(0, 0, 0, .65); pointer-events: none; }
+#toast { position: fixed; top: 40%; left: 50%; transform: translateX(-50%); padding: 12px 20px; border-radius: 14px; max-width: 92vw;
+         background: linear-gradient(#fff9e0, #f4e0aa); color: #5a0715; border: 2px solid #e3b23c; box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
+         font: 18px Georgia, serif; white-space: nowrap; opacity: 0; transition: opacity .3s; }
+#toast.on { opacity: 1; }
+#start { position: fixed; inset: 0; display: grid; place-content: center; justify-items: center; gap: 20px; padding: 28px; text-align: center;
+         background: radial-gradient(circle at 50% 28%, #226a47, #0e2a1e 60%, #07140e); }
+#start > .snow, #start > .lights { position: absolute; z-index: 0; }
+#start > :not(.snow):not(.lights) { position: relative; z-index: 1; }
+#start h1 { font: 700 40px/1.1 Georgia, serif; color: #ffe596; text-shadow: var(--ex); }
+#start p { font: 18px/1.5 Georgia, serif; color: #fff6d0; }
+#start .small { font: 14px system-ui, sans-serif; opacity: .7; }
+button { padding: 14px 28px; border: 0; border-radius: 999px; background: #ffd76a; color: #5a0a18; }
+#go { margin-top: 6px; padding: 16px 38px; font: 700 21px Georgia, serif; color: #5a0715; background: linear-gradient(#ffe596, #e3b23c);
+      box-shadow: 0 5px 0 #a87a14, 0 12px 26px rgba(0, 0, 0, .45), 0 0 28px rgba(255, 215, 106, .35); animation: breathe 2.8s ease-in-out infinite; }
+#go:active { transform: translateY(3px); box-shadow: 0 2px 0 #a87a14, 0 6px 14px rgba(0, 0, 0, .45); }
+@keyframes breathe { 50% { box-shadow: 0 5px 0 #a87a14, 0 12px 26px rgba(0, 0, 0, .45), 0 0 44px rgba(255, 215, 106, .6); } }
+/* falling snow (flakes are made by decorate()) and a string of lights; used on the start screen, snow also on the finale */
+.snow { inset: 0; overflow: hidden; pointer-events: none; }
+.snow i { position: absolute; top: -12px; border-radius: 50%; background: #fff; animation: fall linear infinite; }
+@keyframes fall { to { transform: translate(40px, calc(100vh + 24px)); } }
+/* snow over the game: a light layer all the time, a heavier one on the finale; above the camera and the tile, below the top row and the hint */
+#snow, #finaleSnow { position: fixed; }
+#snow i { scale: .7; }
+#finaleSnow { display: none; }
+.done #finaleSnow { display: block; }
+.lights { top: 0; left: 0; right: 0; height: 34px; pointer-events: none; }
+.lights svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lights i { position: absolute; width: 9px; height: 13px; margin-left: -4.5px; border-radius: 50% 50% 45% 45%; background: currentColor;
+            box-shadow: 0 0 10px 1px currentColor; animation: bulb 2.4s ease-in-out infinite alternate; }
+@keyframes bulb { from { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .snow i { display: none; } .lights i, #go { animation: none; } }
+[hidden] { display: none !important; }
+
+/* setup / print mode (?setup): the owner's page, in the game's colours. The game page never scrolls (html and body are
+   overflow: hidden above), so setup mode switches that off on the html element too; body must not become a second scroller. */
+html.setup { height: auto; overflow: auto; background: #07140e; }
+body.setup { height: auto; min-height: 100vh; overflow: visible; padding: 0; color: #3a0410;
+             background: radial-gradient(ellipse at 50% 0, #226a47, #0e2a1e 45%, #07140e 85%); }
+body.setup > :not(#setup) { display: none !important; }   /* no game layers (snow, tile, toast, debug box) on this page */
+.wrap { max-width: 1080px; margin: 0 auto; padding: 28px 16px 8px; }
+.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 20px; }
+.top h1 { font: 700 34px/1.1 Georgia, serif; color: #ffe596; text-shadow: var(--ex); }
+#ver { font-size: 13px; color: #fff6d0; opacity: .7; }
+.panel { margin-bottom: 20px; padding: 20px 20px 22px; border: 2px solid #e3b23c; border-radius: 18px;
+         background: linear-gradient(#fff9e0, #f4e0aa); box-shadow: 0 8px 24px rgba(0, 0, 0, .4), inset 0 0 0 4px rgba(255, 255, 255, .35); }
+.panel h2 { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font: 700 24px/1.2 Georgia, serif; color: #5a0715; }
+.num { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #5a0715; color: #ffe596;
+       font: 700 20px Georgia, serif; box-shadow: 0 0 0 2px #e3b23c, 0 2px 4px rgba(0, 0, 0, .4); }
+.panel p { max-width: 70ch; margin-bottom: 12px; font: 17px/1.55 Georgia, serif; }
+.panel code { padding: 1px 6px; border-radius: 6px; background: rgba(90, 7, 21, .1); font: 14px ui-monospace, Menlo, monospace; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }
+#setup button { padding: 12px 24px; font: 700 16px Georgia, serif; color: #5a0715; cursor: pointer;
+                background: linear-gradient(#ffe596, #e3b23c); box-shadow: 0 3px 0 #a87a14, 0 6px 12px rgba(0, 0, 0, .25); }
+#setup button:active { transform: translateY(2px); box-shadow: 0 1px 0 #a87a14; }
+#setup button.ghost { padding: 10px 22px; border: 2px solid #5a0715; background: transparent; box-shadow: none; }
+#setup button:focus-visible, #hints textarea:focus-visible, #cards a:focus-visible { outline: 3px solid #5a0715; outline-offset: 2px; }
+#heading { margin: 14px 0; padding: 10px 20px; border-radius: 14px; background: #2a0610; color: #ffe596; text-align: center;
+           font: 700 64px/1.1 ui-monospace, Menlo, monospace; text-shadow: 0 0 18px rgba(255, 215, 106, .5); box-shadow: inset 0 0 14px rgba(0, 0, 0, .6); }
+#out, #hintsOut { margin: 12px 0; padding: 12px 14px; border-radius: 10px; background: #2a0610; color: #ffe9b0;
+                  font: 13px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; user-select: all; }
+#hints { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 0 18px; }
+#hints label { display: block; margin: 10px 0 4px; font: 700 15px Georgia, serif; color: #5a0715; }
+#hints textarea { width: 100%; padding: 10px 12px; border: 1px solid #e3b23c; border-radius: 10px; background: #fffdf3; color: #3a0410;
+                  font: 16px/1.4 Georgia, serif; resize: vertical; }
+#copied { font: 15px Georgia, serif; color: #1d6b3c; }
+#cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; max-width: 1080px; margin: 0 auto; padding: 4px 16px 32px; }
+#cards div { padding: 12px; text-align: center; break-inside: avoid; border: 2px solid #e3b23c; border-radius: 14px;
+             background: linear-gradient(#fff9e0, #f4e0aa); box-shadow: 0 6px 16px rgba(0, 0, 0, .35); font: 700 20px Georgia, serif; color: #5a0715; }
+#cards img { display: block; width: 100%; margin-bottom: 6px; border-radius: 8px; image-rendering: pixelated; }
+#cards .btn { display: inline-block; margin: 6px 3px 0; padding: 8px 14px; border-radius: 999px; font: 700 14px system-ui, sans-serif;
+              color: #5a0715; text-decoration: none; cursor: pointer; background: linear-gradient(#ffe596, #e3b23c); box-shadow: 0 2px 0 #a87a14; }
+@media (max-width: 520px) {
+  .wrap { padding-top: 20px; }
+  .top h1 { font-size: 28px; }
+  .panel { padding: 16px 14px 18px; border-radius: 14px; }
+  .panel h2 { font-size: 21px; }
+  #heading { font-size: 52px; }
+}
+/* printing: only the cards, three to a row, on white; everything above is for the screen */
+@media print {
+  html.setup, body.setup { background: #fff; color: #000; }
+  #cards { grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: none; margin: 0; padding: 0; }
+  #cards div { padding: 12px; border: 1px dashed #999; border-radius: 0; background: none; box-shadow: none; color: #000; font: 16px -apple-system, system-ui, sans-serif; }
+  #cards img { margin: 0; border-radius: 0; }
+  .noprint { display: none !important; }
+}
+#full { position: fixed; inset: 0; z-index: 9; background: #fff; display: grid; place-items: center; }
+#full img { width: min(100vw, 100vh); image-rendering: pixelated; }
+#full { cursor: zoom-out; }

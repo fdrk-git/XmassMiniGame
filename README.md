@@ -19,8 +19,8 @@ The game text is in Hungarian. Progress is kept on the phone, so a reload or a d
 ## Setting it up
 
 1. **Print the cards.** Open `index.html?setup` on a computer and print. The cards are deep red on cream with a gold frame, to match the statues; a black-and-white print of them should also scan (the reader only looks at brightness). Cards printed before v0.0.6 still work but scan poorly at an angle; reprint them. The small number on each card is its order (1 = M … 9 = S). To test without printing, **Full screen** under a card shows that one code large, ready to scan from the screen (tap to close), and **Download** saves it as `card-N.png`.
-2. **Write the hints.** On the same `?setup` page, type the ten hints into the boxes (the first leads to card 1, the last to the gift), press **Copy**, and paste the block over `const HINTS` at the top of the script in `index.html` (everything from `const HINTS = [` to the closing `];`), then deploy. What you type is kept on that computer only, and only until you paste a new block; the game itself does not change until then. You can also edit `HINTS` in `index.html` by hand.
-3. **Record the directions.** With the cards hidden, open `?setup` on the iPhone. At each spot hold the phone flat, point it at the next card and tap **Record**. Paste the resulting line over `const BEARINGS`. Steps left as `null` show no arrow.
+2. **Write the hints.** On the same `?setup` page, type the ten hints into the boxes (the first leads to card 1, the last to the gift), press **Copy**, and paste the block over `const HINTS` in `js/config.js` (everything from `const HINTS = [` to the closing `];`), then deploy. What you type is kept on that computer only, and only until you paste a new block; the game itself does not change until then. You can also edit `HINTS` in `js/config.js` by hand.
+3. **Record the directions.** With the cards hidden, open `?setup` on the iPhone. At each spot hold the phone flat, point it at the next card and tap **Record**. Paste the resulting line over `const BEARINGS` in `js/config.js`. Steps left as `null` show no arrow.
 
 ## Requirements
 
@@ -28,6 +28,18 @@ The game text is in Hungarian. Progress is kept on the phone, so a reload or a d
 - Built for iPhone Safari; the compass uses an iOS-only heading value.
 - Needs an internet connection: the QR reader ([jsQR](https://github.com/cozmo/jsQR)) and the card generator load from a CDN.
 - Indoor compasses can be 20–30° off near metal and electronics, so the arrow is a nudge, not a pointer.
+
+## Files
+
+```
+index.html       page markup and the version number
+css/style.css    all styling, including the setup page and print layout
+js/config.js     the only file to edit: letters, hints, compass directions
+js/game.js       camera, QR reading, motion tracking, the statue, effects, game flow
+js/setup.js      the ?setup page: compass recorder, hint editor, printable cards
+js/selfcheck.js  the ?test self-check
+backups/         zip of every version (git-ignored)
+```
 
 ## Development
 
@@ -39,6 +51,6 @@ Then open `http://localhost:8123`. Adding `?debug` to the game's address shows l
 
 ## Versions
 
-The page checks the server for a newer version each time it opens and reloads itself if it finds one, so a new deploy shows up without clearing site data. `const VERSION` in `index.html` must be bumped with every release for this to work; the setup page shows the loaded version.
+The page checks the server for a newer version each time it opens and reloads itself if it finds one, so a new deploy shows up without clearing site data. `const VERSION` in `index.html` must be bumped with every release for this to work, and so must the `?v=` on its `css/` and `js/` links (`sed -i '' 's/?v=OLD/?v=NEW/g' index.html`), which keeps phones from reusing old copies of those files (`?test` checks they match); the setup page shows the loaded version.
 
 Versions are `vX.Y.Z`, where each part runs 0–9 and carries into the next at 10 (v0.0.9 is followed by v0.1.0). Every version is published as a pre-release until the game is finished.
