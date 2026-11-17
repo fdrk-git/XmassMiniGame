@@ -1,7 +1,6 @@
-// ====================== CONFIG — edit these ======================
-const LETTERS = 'MERRYXMAS';   // card 1 = M ... card 9 = S; QR texts are mx1..mx9
-const GAP_AFTER = 5;           // space between MERRY and XMAS
-// HINTS[0] is shown at the start (leads to card 1), HINTS[n] after card n is found, HINTS[9] leads to the gift.
+// ====================== CONFIG — made by the ?setup page, or edit by hand ======================
+const SENTENCE = 'MERRY XMAS';   // spaces split words; every other character is one hidden card (QR texts mx1, mx2, ...)
+// HINTS[0] is shown at the start (leads to card 1), HINTS[n] after card n is found, the last one leads to the gift.
 const HINTS = [
   '[1. TIPP – írd át: hol van az 1. kártya?]',
   '[2. TIPP – írd át: hol van a 2. kártya?]',

@@ -12,12 +12,32 @@ function selfUpdate() {
 selfUpdate();
 
 const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"']/g, c => '&#' + c.charCodeAt(0) + ';');
+
+// The sentence as words (a word is a list of characters, one hidden card each) and all its cards in order.
+const wordsOf = sentence => sentence.toUpperCase().split(/\s+/).filter(Boolean).map(w => [...w]);
+const WORDS = wordsOf(SENTENCE), LETTERS = WORDS.flat();
+
+// The row of slots (top of the game, and the preview on the start screen): `chip(i)` makes the markup of card i's slot.
+// Each word stays whole, a space lets the row wrap.
+const slotRow = chip => { let i = 0; return WORDS.map(w => `<span class="w">${w.map(() => chip(i++)).join('')}</span>`).join(' '); };
+const chipEl = i => $('slots').querySelectorAll('b, i')[i];
+
+// Slot size: one row if the chips stay at least 18px, else one word per line, down to whatever fits the longest word.
+// A chip with its margins is 1.21em wide, a space about .7em (what the old fixed 11.6 allowed for MERRY XMAS).
+function slotSize(room, words) {
+  const oneRow = room / (words.flat().length * 1.21 + (words.length - 1) * .7);
+  return Math.min(30, oneRow >= 18 ? oneRow : room / (Math.max(...words.map(w => w.length)) * 1.21));
+}
+function fitSlots() { document.documentElement.style.setProperty('--sz', slotSize(innerWidth - 16, WORDS) + 'px'); }
+fitSlots();
+addEventListener('resize', fitSlots);
+
 let found = 0, heading = null, lastSeen = null, toastTimer;
 
 function render() {
-  $('slots').innerHTML = [...LETTERS].map((c, i) =>
-    (i === GAP_AFTER ? '&nbsp;' : '') + (i < found ? `<b${i === landing ? ' style="color:transparent;text-shadow:none"' : ''}>${c}</b>` : '<i>•</i>')).join('');
-  $('hint').innerHTML = (found === LETTERS.length ? 'Megvan mind! ' : '') + HINTS[found] +
+  $('slots').innerHTML = slotRow(i => i < found ? `<b${i === landing ? ' style="color:transparent;text-shadow:none"' : ''}>${esc(LETTERS[i])}</b>` : '<i>•</i>');
+  $('hint').innerHTML = (found === LETTERS.length ? 'Megvan mind! ' : '') + (HINTS[found] || '') +
     (BEARINGS[found] != null ? '<small id="tip">Az iránytűhöz tartsd vízszintesen a telefont</small>' : '');
   document.body.classList.toggle('done', found === LETTERS.length && landing < 0);   // the finale waits for the last letter to land
   turnArrow();
@@ -45,7 +65,8 @@ function decorate() {
   $('start').querySelector('.lights').innerHTML = `<svg viewBox="0 0 100 34" preserveAspectRatio="none"><path d="${wire}" fill="none" stroke="#0a2a1d" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>` +
     Array.from({ length: bulbs }, (_, i) => { const t = ((i + .5) / bulbs * swags) % 1;
       return `<i style="left:${(i + .5) / bulbs * 100}%;top:${4 + 4 * sag * t * (1 - t)}px;color:${colours[i % 3]};animation-delay:${-i * .37}s"></i>`; }).join('');
-  $('preview').innerHTML = [...LETTERS].map((_, i) => (i === GAP_AFTER ? '&nbsp;' : '') + '<i>•</i>').join('');
+  $('preview').innerHTML = slotRow(() => '<i>•</i>');
+  $('lead').innerHTML = `${LETTERS.length} betű rejtőzik a lakásban.<br>Keresd meg őket a kamerával – sorban!`;
 }
 decorate();
 
@@ -82,7 +103,7 @@ function burst(x, y, sparks = 10, reach = 70) {
 // A flat gold letter launches up from the statue (or from mid-screen if no card is in view) in a flash of sparks,
 // spins and tilts through the air leaving a sparkle trail, and lands in its slot with a ring, sparks and a pop.
 function fly(i) {
-  const el = document.createElement('div'), slot = $('slots').children[i].getBoundingClientRect();
+  const el = document.createElement('div'), slot = chipEl(i).getBoundingClientRect();
   el.className = 'fly'; el.textContent = LETTERS[i];
   document.body.append(el);
   let x = innerWidth / 2, y = innerHeight / 2, s = 1.5;
@@ -98,7 +119,7 @@ function fly(i) {
   el.animate([
     { transform: pose(x, y, s, 0, 0), easing: 'cubic-bezier(.2, .8, .3, 1)' },                                                          // launch
     { transform: pose(x, Math.max(130, y - innerHeight * .3), s * 1.3, 360, -14), offset: .4, easing: 'cubic-bezier(.6, 0, .4, 1)' },   // hang, leaning
-    { transform: pose(slot.left + slot.width / 2, slot.top + slot.height / 2, .25, 720, 10) },                                          // land (30px / 120px)
+    { transform: pose(slot.left + slot.width / 2, slot.top + slot.height / 2, parseFloat(getComputedStyle($('slots')).fontSize) / 120, 720, 10) },   // land at slot size (slot font / 120px)
   ], { duration: 1500, fill: 'forwards' });
   const trail = calm() ? 0 : setInterval(() => {   // 33 sparks over the flight, each gone after under a second
     const b = el.getBoundingClientRect();
@@ -107,7 +128,7 @@ function fly(i) {
   }, 45);
   setTimeout(() => {
     clearInterval(trail); el.remove(); if (landing === i) landing = -1; render();
-    const chip = $('slots').children[i], r = chip.getBoundingClientRect();
+    const chip = chipEl(i), r = chip.getBoundingClientRect();
     if (!calm()) {   // the slot pops and flashes as the letter lands
       chip.animate([{ transform: 'scale(1)', boxShadow: '0 0 0 rgba(255, 215, 106, 0)' },
                     { transform: 'scale(1.45) rotate(-6deg)', boxShadow: '0 0 1.1em #ffd76a', offset: .35 },
@@ -123,7 +144,7 @@ function fly(i) {
 function celebrate() {
   chime(NOTES, .09);
   if (calm()) return;
-  [...$('slots').children].forEach((chip, i) => {
+  $('slots').querySelectorAll('b, i').forEach((chip, i) => {
     chip.animate([{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(-.9em) scale(1.25) rotate(-8deg)', offset: .4 }, { transform: 'translateY(0) scale(1)' }],
       { duration: 700, delay: i * 80, easing: 'cubic-bezier(.3, 1.5, .5, 1)' });
     const r = chip.getBoundingClientRect();
@@ -160,7 +181,8 @@ try { if (location.search.includes('reset')) localStorage.removeItem(KEEP); } ca
 
 // Returns the card number for one of our QR texts, else 0. Advances the game when it is the next card.
 function onCode(text) {
-  const n = +(/^mx([1-9])$/.exec(text) || [])[1] || 0;
+  let n = +(/^mx([1-9]\d?)$/.exec(text) || [])[1] || 0;
+  if (n > LETTERS.length) n = 0;   // a card of some other hunt
   if (n === found + 1) {
     found++;
     if (!testing) try { localStorage.setItem(KEEP, found); } catch (e) { /* private window: nothing remembered */ }
@@ -450,9 +472,9 @@ function showTile(tile, W, H) {
 
 // A letter: 10 copies stacked 4 px apart form the dark side, then a pale copy nudged up-left (the lit bevel edge),
 // then the polished face on top.
-const letterStatue = c => Array.from({ length: 10 }, (_, i) =>
+const letterStatue = char => { const c = esc(char); return Array.from({ length: 10 }, (_, i) =>
   `<span style="transform:translateX(-50%) translateZ(${-i * 4}px);color:hsl(40,82%,${19 + i * 2.2}%)">${c}</span>`).join('') +
-  `<span class="edge">${c}</span><span class="front">${c}</span>`;
+  `<span class="edge">${c}</span><span class="front">${c}</span>`; };
 
 // A wrapped present: four walls, a lid, and a bow.
 const GIFT = '<div class="box" style="transform:translateZ(95px)"></div>' +

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Karácsonyi kincskeresés ✨</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
-<link rel="stylesheet" href="css/style.css?v=0.1.9">
+<link rel="stylesheet" href="css/style.css?v=0.2.0">
 </head>
 <body>
 
@@ -25,7 +25,7 @@
   <div class="snow"></div><div class="lights"></div>
   <h1>Karácsonyi<br>kincskeresés</h1>
   <div id="preview" aria-hidden="true"></div>
-  <p>Kilenc betű rejtőzik a lakásban.<br>Keresd meg őket a kamerával – sorban!</p>
+  <p id="lead"></p>
   <button id="go">Kezdjük!</button>
   <p class="small">Engedélyezd a kamerát és a mozgásérzékelőt.</p>
   <p id="err" style="color:#ff9c9c"></p>
@@ -35,28 +35,37 @@
   <div class="noprint wrap">
     <header class="top"><h1>Hunt setup</h1><span id="ver"></span></header>
     <section class="panel">
-      <h2><span class="num">1</span>Record compass directions</h2>
+      <h2><span class="num">1</span>Write the sentence</h2>
+      <p>The words the player spells out. Spaces split words; every other character (letters, numbers, !) is one hidden card.
+         Up to 30 cards.</p>
+      <input id="sentence" type="text" autocomplete="off" spellcheck="false" aria-describedby="count">
+      <p id="count"></p>
+    </section>
+    <section class="panel">
+      <h2><span class="num">2</span>Edit the hints</h2>
+      <p>One hint for every step; the game shows it on a gift tag. What you type here is remembered on this computer only.
+         The game reads hints as HTML, so a stray &lt; or &amp; would be misread.</p>
+      <div id="hints"></div>
+    </section>
+    <section class="panel">
+      <h2><span class="num">3</span>Record compass directions (optional)</h2>
       <p>Open this page on the iPhone. Stand at the starting point, hold the phone <b>flat</b> with its top pointing
-         towards card 1, tap Record. Then stand at card 1 pointing at card 2, and so on. The 10th one is from card 9 to the gift.</p>
+         towards card 1, tap Record. Then stand at card 1 pointing at card 2, and so on. The last one is from the last card to the gift.
+         Recording again overwrites a step; steps you skip keep what they had.</p>
       <div class="row"><button id="compassOn">Enable compass</button></div>
       <div id="heading">–</div>
       <div class="row"><button id="rec">Record</button><button id="undo" class="ghost">Undo</button></div>
       <div id="out"></div>
-      <p>Paste that line over <code>const BEARINGS</code> in js/config.js.</p>
     </section>
     <section class="panel">
-      <h2><span class="num">2</span>Edit the hints</h2>
-      <p>One hint for every step; the game shows it on a gift tag. Type here, then copy the block below and paste it over
-         <code>const HINTS</code> in js/config.js (everything from <code>const HINTS = [</code> to the closing <code>];</code>) and deploy it.
-         What you type is remembered on this computer only: the game does not change until you paste the block.
-         The game reads hints as HTML, so a stray &lt; or &amp; would be misread.</p>
-      <div id="hints"></div>
-      <pre id="hintsOut"></pre>
-      <div class="row"><button id="copyHints">Copy</button><span id="copied"></span></div>
+      <h2><span class="num">4</span>Save the hunt</h2>
+      <p>Copy this and paste it over the whole of <code>js/config.js</code>, then deploy. The game does not change until you do.</p>
+      <pre id="configOut"></pre>
+      <div class="row"><button id="copyConfig">Copy</button><span id="copied"></span></div>
     </section>
     <section class="panel">
-      <h2><span class="num">3</span>Print the cards</h2>
-      <p>Print this page (the instructions above are left out). The small number is the order: 1 = M … 9 = S.</p>
+      <h2><span class="num">5</span>Print the cards</h2>
+      <p id="order">Print this page (the instructions above are left out). The small number is the order.</p>
     </section>
   </div>
   <div id="cards"></div>
@@ -64,10 +73,10 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-<script>const VERSION = '0.1.9';   // bump with every release (see README): the game compares it with the server's copy, and the ?v= on the files below must match</script>
-<script src="js/config.js?v=0.1.9"></script>
-<script src="js/game.js?v=0.1.9"></script>
-<script src="js/setup.js?v=0.1.9"></script>
-<script src="js/selfcheck.js?v=0.1.9"></script>
+<script>const VERSION = '0.2.0';   // bump with every release (see README): the game compares it with the server's copy, and the ?v= on the files below must match</script>
+<script src="js/config.js?v=0.2.0"></script>
+<script src="js/game.js?v=0.2.0"></script>
+<script src="js/setup.js?v=0.2.0"></script>
+<script src="js/selfcheck.js?v=0.2.0"></script>
 </body>
 </html>

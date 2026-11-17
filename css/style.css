@@ -38,8 +38,9 @@ video { display: none; }
 #tile .knot { left: -17px; bottom: 150px; width: 34px; height: 34px; border-width: 17px; background: #ffd76a; }
 /* 3D letters: stacked darker copies underneath read as the side of a thick gold letter */
 :root { --ex: 0 1px 0 #e3b23c, 0 2px 0 #cc9a2a, 0 3px 0 #b3821b, 0 4px 0 #976b10, 0 5px 0 #7a5608, 0 8px 10px rgba(0, 0, 0, .75); }
-/* the nine letter slots: gold-framed red chips, sized in em so the row always fits the screen width */
-#slots, #preview { font: 700 min(30px, calc((100vw - 16px) / 11.6)) Georgia, serif; white-space: nowrap; text-align: center; }
+/* the letter slots: gold-framed red chips, sized in em so the row always fits the screen width */
+#slots, #preview { font: 700 var(--sz, 24px) Georgia, serif; text-align: center; }   /* --sz is set by fitSlots() */
+#slots .w, #preview .w { display: inline-block; white-space: nowrap; margin: .1em 0; }
 #slots { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 0; right: 0; }
 #slots b, #slots i, #preview i { display: inline-block; width: 1.05em; height: 1.4em; line-height: 1.4em; margin: 0 .08em; border-radius: .3em;
     border: .06em solid #e3b23c; background: linear-gradient(#a8142e, #5a0715); font-style: normal;
@@ -121,15 +122,16 @@ body.setup > :not(#setup) { display: none !important; }   /* no game layers (sno
                 background: linear-gradient(#ffe596, #e3b23c); box-shadow: 0 3px 0 #a87a14, 0 6px 12px rgba(0, 0, 0, .25); }
 #setup button:active { transform: translateY(2px); box-shadow: 0 1px 0 #a87a14; }
 #setup button.ghost { padding: 10px 22px; border: 2px solid #5a0715; background: transparent; box-shadow: none; }
-#setup button:focus-visible, #hints textarea:focus-visible, #cards a:focus-visible { outline: 3px solid #5a0715; outline-offset: 2px; }
+#setup button:focus-visible, #hints textarea:focus-visible, #sentence:focus-visible, #cards a:focus-visible { outline: 3px solid #5a0715; outline-offset: 2px; }
 #heading { margin: 14px 0; padding: 10px 20px; border-radius: 14px; background: #2a0610; color: #ffe596; text-align: center;
            font: 700 64px/1.1 ui-monospace, Menlo, monospace; text-shadow: 0 0 18px rgba(255, 215, 106, .5); box-shadow: inset 0 0 14px rgba(0, 0, 0, .6); }
-#out, #hintsOut { margin: 12px 0; padding: 12px 14px; border-radius: 10px; background: #2a0610; color: #ffe9b0;
+#out, #configOut { margin: 12px 0; padding: 12px 14px; border-radius: 10px; background: #2a0610; color: #ffe9b0;
                   font: 13px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; user-select: all; }
 #hints { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 0 18px; }
 #hints label { display: block; margin: 10px 0 4px; font: 700 15px Georgia, serif; color: #5a0715; }
 #hints textarea { width: 100%; padding: 10px 12px; border: 1px solid #e3b23c; border-radius: 10px; background: #fffdf3; color: #3a0410;
                   font: 16px/1.4 Georgia, serif; resize: vertical; }
+#sentence { width: 100%; padding: 12px 14px; border: 1px solid #e3b23c; border-radius: 10px; background: #fffdf3; color: #3a0410; font: 20px Georgia, serif; }
 #copied { font: 15px Georgia, serif; color: #1d6b3c; }
 #cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; max-width: 1080px; margin: 0 auto; padding: 4px 16px 32px; }
 #cards div { padding: 12px; text-align: center; break-inside: avoid; border: 2px solid #e3b23c; border-radius: 14px;

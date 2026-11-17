@@ -31,12 +31,21 @@ if (location.search.includes('test')) {
     showTile(null);
     console.assert(sum / 149 < 1, 'statue top wobbles under 1 px per frame', sum / 149);
   }
-  // hints block: pasting it back must give exactly the typed text, whatever it contains
+  // config file text: pasting it back must give exactly the typed sentence, hints and directions, whatever they contain
   {
     const typed = ['plain', 'quote " and \\ backslash', 'two\nlines', '🎁 emoji', 'Árvíztűrő tükörfúrógép', "it's", '<\/script>', '', '  spaces  ', '\u2028 line sep'];
-    const back = new Function(hintsBlock(typed) + '; return HINTS')();
-    console.assert(JSON.stringify(back) === JSON.stringify(typed), 'hints block round trip', back);
+    const want = ['Árvíz "tűrő" \\ <b>!', typed, [null, 12, 359]];
+    const back = new Function(configText(...want) + '; return [SENTENCE, HINTS, BEARINGS]')();
+    console.assert(JSON.stringify(back) === JSON.stringify(want), 'config text round trip', back);
   }
+  // the sentence: words and cards, the lists that follow its length, and the slot size
+  console.assert(JSON.stringify(wordsOf(' Merry  ő! ')) === '[["M","E","R","R","Y"],["Ő","!"]]', 'sentence split into words, upper case');
+  console.assert(JSON.stringify(fitList(['a', 'b', 'gift'], 4, '')) === '["a","b","","","gift"]', 'list grows before the gift step');
+  console.assert(JSON.stringify(fitList(['a', 'b', 'c', 'gift'], 1, '')) === '["a","gift"]', 'list shrinks, gift step stays last');
+  console.assert(esc('<b>&"\'') === '&#60;b&#62;&#38;&#34;&#39;', 'letters are escaped');
+  console.assert(Math.abs(slotSize(377, wordsOf('MERRY XMAS')) - 30) < 1e-9, 'short sentence: one row at full size');
+  console.assert(slotSize(377, wordsOf('AAAAAAAA BBBBBBBB CCCCCCCC')) === 30, 'long sentence wraps by word at full size');
+  console.assert(slotSize(377, wordsOf('A'.repeat(30))) < 12, 'one very long word shrinks to fit');
   // a tile with nothing readable must go: tracking lost -> after 250 ms; tracking fooled by an unchanging picture -> after HIDE_MS
   {
     const real = performance.now.bind(performance); let clock = 5000; performance.now = () => clock;
@@ -57,13 +66,14 @@ if (location.search.includes('test')) {
     performance.now = real; lastSeen = keep;
   }
   localStorage.setItem(KEEP, '4'); console.assert(savedCount() === 4, 'saved progress read back');
-  localStorage.setItem(KEEP, '99'); console.assert(savedCount() === 9, 'saved progress capped');
+  localStorage.setItem(KEEP, '99'); console.assert(savedCount() === LETTERS.length, 'saved progress capped');
   localStorage.setItem(KEEP, 'x'); console.assert(savedCount() === 0, 'bad saved progress ignored'); localStorage.removeItem(KEEP);
   onCode('hello');  console.assert(found === 0, 'foreign QR ignored');
   onCode('mx3');    console.assert(found === 0, 'future card refused');
+  onCode('mx' + (LETTERS.length + 1)); console.assert(found === 0, 'card beyond the last letter ignored');
   onCode('mx1'); onCode('mx1'); console.assert(found === 1, 'repeat ignored');
-  for (let i = 2; i <= 9; i++) onCode('mx' + i);
-  console.assert(found === 9 && !document.body.classList.contains('done'), 'all found; finale waits for the last letter');
+  for (let i = 2; i <= LETTERS.length; i++) onCode('mx' + i);
+  console.assert(found === LETTERS.length && !document.body.classList.contains('done'), 'all found; finale waits for the last letter');
   setTimeout(() => {
     console.assert(document.body.classList.contains('done') && !document.querySelector('.fly') && landing < 0, 'finale reached after landing');
     console.log('self-check finished, found =', found, 'failed =', failed);

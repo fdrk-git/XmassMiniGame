@@ -1,6 +1,6 @@
 # Xmas Mini Game 🎄
 
-A one-time Christmas letter hunt that runs in the phone browser. Nine QR cards are hidden around the house; the player finds them in order with the camera, each one reveals a letter of **MERRY XMAS**, and the last one leads to the gift.
+A one-time letter hunt that runs in the phone browser. One QR card per character of a sentence is hidden around the house (the default sentence is **MERRY XMAS**, nine cards); the player finds them in order with the camera, each one reveals a letter, and the last hint leads to the gift. The sentence, hints and cards are all made on the setup page, so anyone can set up their own hunt.
 
 ## How it plays
 
@@ -9,18 +9,22 @@ A one-time Christmas letter hunt that runs in the phone browser. Nine QR cards a
 - When a card is found, its letter launches up from the statue in a flash of sparks, spins to its place in the row at the top leaving a sparkle trail, and lands with a pop. Snow falls over the game the whole time, heavier at the end.
 - The bottom panel shows a written hint and a compass arrow towards the next card. Hold the phone flat for the arrow.
 - Cards must be found in order. A later card answers "Még nem!", a repeated card does nothing.
-- After the ninth card the letters jump in a wave under a shower of gold sparks, then the phrase glows and the final hint points to the gift.
+- After the last card the letters jump in a wave under a shower of gold sparks, then the phrase glows and the final hint points to the gift.
 
 - A soft chime plays as each letter lands and a short run of notes at the end (nothing plays while the iPhone's silent switch is on).
 - If a card will not scan, hold a finger on the row of letters for 2 seconds and the game counts the next card as found.
 
 The game text is in Hungarian. Progress is kept on the phone, so a reload or a dropped tab carries on where she was. To start over (for example after your own test run), open the game once with `?reset` added to the address.
 
-## Setting it up
+## Setting up your own hunt
 
-1. **Print the cards.** Open `index.html?setup` on a computer and print. The cards are deep red on cream with a gold frame, to match the statues; a black-and-white print of them should also scan (the reader only looks at brightness). Cards printed before v0.0.6 still work but scan poorly at an angle; reprint them. The small number on each card is its order (1 = M … 9 = S). To test without printing, **Full screen** under a card shows that one code large, ready to scan from the screen (tap to close), and **Download** saves it as `card-N.png`.
-2. **Write the hints.** On the same `?setup` page, type the ten hints into the boxes (the first leads to card 1, the last to the gift), press **Copy**, and paste the block over `const HINTS` in `js/config.js` (everything from `const HINTS = [` to the closing `];`), then deploy. What you type is kept on that computer only, and only until you paste a new block; the game itself does not change until then. You can also edit `HINTS` in `js/config.js` by hand.
-3. **Record the directions.** With the cards hidden, open `?setup` on the iPhone. At each spot hold the phone flat, point it at the next card and tap **Record**. Paste the resulting line over `const BEARINGS` in `js/config.js`. Steps left as `null` show no arrow.
+Everything is done on the `?setup` page. Open `index.html?setup` on a computer (served locally, or from wherever you host it).
+
+1. **Write the sentence.** Spaces split words; every other character (letters, numbers, `!`) is one hidden card, up to 30. Long sentences wrap onto one line per word on the phone.
+2. **Write the hints.** One box per step: the first leads to card 1, the last to the gift. The boxes follow the sentence as you change it. What you type is kept on that computer only.
+3. **Record the directions (optional).** With the cards hidden, open `?setup` on the iPhone. At each spot hold the phone flat, point it at the next card and tap **Record**. Steps you skip show no arrow.
+4. **Save the hunt.** Press **Copy** and paste the text over the whole of `js/config.js`, then deploy. The game does not change until you do. You can also edit `js/config.js` by hand: `SENTENCE`, `HINTS` and `BEARINGS`, with one more hint and direction than there are cards.
+5. **Print the cards.** Print the same page: one QR card per character, numbered in order, deep red on cream with a gold frame to match the statues. A black-and-white print should also scan (the reader only looks at brightness). To test without printing, **Full screen** under a card shows that one code large, ready to scan from the screen (tap to close), and **Download** saves it as `card-N.png`. The cards only carry their number (`mx1`, `mx2`, ...), so they work with any sentence of the same length, but do not mix cards from two hunts in one house.
 
 ## Requirements
 
@@ -34,9 +38,9 @@ The game text is in Hungarian. Progress is kept on the phone, so a reload or a d
 ```
 index.html       page markup and the version number
 css/style.css    all styling, including the setup page and print layout
-js/config.js     the only file to edit: letters, hints, compass directions
+js/config.js     the only file to edit: sentence, hints, compass directions
 js/game.js       camera, QR reading, motion tracking, the statue, effects, game flow
-js/setup.js      the ?setup page: compass recorder, hint editor, printable cards
+js/setup.js      the ?setup page: sentence, hint editor, compass recorder, printable cards
 js/selfcheck.js  the ?test self-check
 backups/         zip of every version (git-ignored)
 ```
