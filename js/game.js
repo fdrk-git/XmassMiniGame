@@ -29,16 +29,46 @@ function slotSize(room, words) {
   const oneRow = room / (words.flat().length * 1.21 + (words.length - 1) * .7);
   return Math.min(30, oneRow >= 18 ? oneRow : room / (Math.max(...words.map(w => w.length)) * 1.21));
 }
-function fitSlots() { document.documentElement.style.setProperty('--sz', slotSize(innerWidth - 16, WORDS) + 'px'); }
+function fitSlots() {   // each row by the room its parent gives it: the start screen has padding, the game's row spans the screen
+  for (const row of [$('slots'), $('preview')]) {
+    const box = row.parentElement, cs = getComputedStyle(box);
+    if (box.clientWidth) row.style.setProperty('--sz', slotSize(box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 16, WORDS) + 'px');
+  }
+}
 fitSlots();
 addEventListener('resize', fitSlots);
+
+// ---- the game's own text, in the hunt's language (LANGUAGE in config.js; a config without it is Hungarian) ----
+const TEXTS = {
+  hu: {
+    title: 'Karácsonyi kincskeresés', heading: 'Karácsonyi<br>kincskeresés',
+    lead: n => `${n} betű rejtőzik a lakásban.<br>Keresd meg őket a kamerával – sorban!`,
+    go: 'Kezdjük!', allow: 'Engedélyezd a kamerát és a mozgásérzékelőt.',
+    noCamera: 'Nem sikerült elindítani a kamerát. Engedélyezd, majd töltsd újra az oldalt.',
+    notYet: 'Még nem! Ez egy későbbi betű 😉', allFound: 'Megvan mind!', holdFlat: 'Az iránytűhöz tartsd vízszintesen a telefont',
+  },
+  en: {
+    title: 'Christmas treasure hunt', heading: 'Christmas<br>treasure hunt',
+    lead: n => `${n === 1 ? 'One letter is' : n + ' letters are'} hidden around the house.<br>Find them with the camera – in order!`,
+    go: "Let's go!", allow: 'Allow the camera and motion sensors.',
+    noCamera: 'The camera could not start. Allow it, then reload the page.',
+    notYet: 'Not yet! That is a later letter 😉', allFound: 'All found!', holdFlat: 'Hold the phone flat for the compass',
+  },
+};
+const LANG = typeof LANGUAGE === 'string' && TEXTS[LANGUAGE] ? LANGUAGE : 'hu', T = TEXTS[LANG];
+document.documentElement.lang = LANG;
+document.title = T.title + ' ✨';
+$('title').innerHTML = T.heading;
+$('lead').innerHTML = T.lead(LETTERS.length);
+$('go').textContent = T.go;
+$('allow').textContent = T.allow;
 
 let found = 0, heading = null, lastSeen = null, toastTimer;
 
 function render() {
   $('slots').innerHTML = slotRow(i => i < found ? `<b${i === landing ? ' style="color:transparent;text-shadow:none"' : ''}>${esc(LETTERS[i])}</b>` : '<i>•</i>');
-  $('hint').innerHTML = (found === LETTERS.length ? 'Megvan mind! ' : '') + (HINTS[found] || '') +
-    (BEARINGS[found] != null ? '<small id="tip">Az iránytűhöz tartsd vízszintesen a telefont</small>' : '');
+  $('hint').innerHTML = (found === LETTERS.length ? T.allFound + ' ' : '') + (HINTS[found] || '') +
+    (BEARINGS[found] != null ? `<small id="tip">${T.holdFlat}</small>` : '');
   document.body.classList.toggle('done', found === LETTERS.length && landing < 0);   // the finale waits for the last letter to land
   turnArrow();
 }
@@ -66,7 +96,6 @@ function decorate() {
     Array.from({ length: bulbs }, (_, i) => { const t = ((i + .5) / bulbs * swags) % 1;
       return `<i style="left:${(i + .5) / bulbs * 100}%;top:${4 + 4 * sag * t * (1 - t)}px;color:${colours[i % 3]};animation-delay:${-i * .37}s"></i>`; }).join('');
   $('preview').innerHTML = slotRow(() => '<i>•</i>');
-  $('lead').innerHTML = `${LETTERS.length} betű rejtőzik a lakásban.<br>Keresd meg őket a kamerával – sorban!`;
 }
 decorate();
 
@@ -190,7 +219,7 @@ function onCode(text) {
     landing = n - 1;
     render();
     setTimeout(fly, 0, n - 1);   // after this frame's work, so the tile is already placed on the card just found
-  } else if (n > found + 1) toast('Még nem! Ez egy későbbi betű 😉');
+  } else if (n > found + 1) toast(T.notYet);
   return n;   // already-found cards: nothing happens
 }
 
@@ -522,7 +551,7 @@ $('go').onclick = async () => {
       { video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false });
     await $('video').play();
   } catch (e) {
-    $('err').textContent = 'Nem sikerült elindítani a kamerát. Engedélyezd, majd töltsd újra az oldalt.';
+    $('err').textContent = T.noCamera;
     return;
   }
   await motion;

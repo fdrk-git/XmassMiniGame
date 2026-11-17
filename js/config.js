@@ -1,4 +1,5 @@
 // ====================== CONFIG — made by the ?setup page, or edit by hand ======================
+const LANGUAGE = 'hu';           // game text: 'hu' (Magyar) or 'en' (English)
 const SENTENCE = 'MERRY XMAS';   // spaces split words; every other character is one hidden card (QR texts mx1, mx2, ...)
 // HINTS[0] is shown at the start (leads to card 1), HINTS[n] after card n is found, the last one leads to the gift.
 const HINTS = [

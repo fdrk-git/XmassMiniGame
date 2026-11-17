@@ -1,6 +1,7 @@
 // All of js/config.js as text, ready to paste over the file. JSON.stringify escapes quotes, backslashes, line breaks and emoji
 // safely, and keeps accents as they are.
-const configText = (sentence, hints, bearings) => `// ====================== CONFIG — made by the ?setup page, or edit by hand ======================
+const configText = (language, sentence, hints, bearings) => `// ====================== CONFIG — made by the ?setup page, or edit by hand ======================
+const LANGUAGE = ${JSON.stringify(language)};           // game text: 'hu' (Magyar) or 'en' (English)
 const SENTENCE = ${JSON.stringify(sentence)};   // spaces split words; every other character is one hidden card (QR texts mx1, mx2, ...)
 // HINTS[0] is shown at the start (leads to card 1), HINTS[n] after card n is found, the last one leads to the gift.
 const HINTS = [
@@ -30,16 +31,19 @@ if (setup) {
 
   // The hunt being edited. Typed text is remembered on this computer, but only while the game's own config is unchanged:
   // after a new config.js is pasted in and deployed, the page starts from that.
-  const base = JSON.stringify([SENTENCE, HINTS]), KEY = 'hunt.hints';
-  let sentence = SENTENCE, texts = [...HINTS], step = 0;   // step: the next compass direction to record
+  const base = JSON.stringify([LANG, SENTENCE, HINTS]), KEY = 'hunt.hints';
+  let language = LANG, sentence = SENTENCE, texts = [...HINTS], step = 0;   // step: the next compass direction to record
   try {
     const saved = JSON.parse(localStorage.getItem(KEY)), n = saved && typeof saved.sentence === 'string' ? wordsOf(saved.sentence).flat().length : 0;
-    if (saved && saved.base === base && Array.isArray(saved.texts) && n > 0 && n <= MAX_CARDS) { sentence = saved.sentence; texts = saved.texts.map(String); }
+    if (saved && saved.base === base && Array.isArray(saved.texts) && n > 0 && n <= MAX_CARDS) {
+      sentence = saved.sentence; texts = saved.texts.map(String);
+      if (TEXTS[saved.language]) language = saved.language;
+    }
   } catch (e) { /* no storage: start from the game's config */ }
   const letters = () => wordsOf(sentence).flat();
   texts = fitList(texts, letters().length, '');
   let bearings = fitList([...BEARINGS], letters().length, null);
-  const config = () => configText(sentence.trim().replace(/\s+/g, ' '), texts, bearings);
+  const config = () => configText(language, sentence.trim().replace(/\s+/g, ' '), texts, bearings);
 
   // everything that follows from the settings
   const show = () => {
@@ -48,7 +52,7 @@ if (setup) {
     $('order').textContent = `Print this page (the instructions above are left out). The small number is the order: 1 = ${l[0]}` + (n > 1 ? ` … ${n} = ${l[n - 1]}.` : '.');
     $('out').textContent = `Directions: ${bearings.map(b => b ?? '–').join(' ')}\nNext to record: step ${Math.min(step + 1, n + 1)} of ${n + 1}`;
     $('configOut').textContent = config();
-    try { localStorage.setItem(KEY, JSON.stringify({ base, sentence, texts })); } catch (e) { /* private window: nothing remembered */ }
+    try { localStorage.setItem(KEY, JSON.stringify({ base, language, sentence, texts })); } catch (e) { /* private window: nothing remembered */ }
   };
   const label = i => { const l = letters(), ch = k => esc(l[k - 1]);
     return i === 0 ? `Start, leads to card 1 (${ch(1)})` : i < l.length
@@ -58,6 +62,8 @@ if (setup) {
     texts.forEach((t, i) => $('h' + i).value = t);   // set as a value, not as markup, so any text is safe
   };
 
+  $('language').value = language;
+  $('language').onchange = e => { language = e.target.value; show(); };
   $('sentence').value = sentence;
   $('sentence').oninput = e => {
     const n = wordsOf(e.target.value).flat().length;

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Karácsonyi kincskeresés ✨</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎄</text></svg>">
-<link rel="stylesheet" href="css/style.css?v=0.2.0">
+<link rel="stylesheet" href="css/style.css?v=0.2.1">
 </head>
 <body>
 
@@ -23,11 +23,11 @@
 
 <div id="start">
   <div class="snow"></div><div class="lights"></div>
-  <h1>Karácsonyi<br>kincskeresés</h1>
+  <h1 id="title"></h1>
   <div id="preview" aria-hidden="true"></div>
   <p id="lead"></p>
-  <button id="go">Kezdjük!</button>
-  <p class="small">Engedélyezd a kamerát és a mozgásérzékelőt.</p>
+  <button id="go"></button>
+  <p class="small" id="allow"></p>
   <p id="err" style="color:#ff9c9c"></p>
 </div>
 
@@ -35,7 +35,9 @@
   <div class="noprint wrap">
     <header class="top"><h1>Hunt setup</h1><span id="ver"></span></header>
     <section class="panel">
-      <h2><span class="num">1</span>Write the sentence</h2>
+      <h2><span class="num">1</span>Language and sentence</h2>
+      <div class="row"><label for="language">Game language</label>
+        <select id="language"><option value="hu">Magyar</option><option value="en">English</option></select></div>
       <p>The words the player spells out. Spaces split words; every other character (letters, numbers, !) is one hidden card.
          Up to 30 cards.</p>
       <input id="sentence" type="text" autocomplete="off" spellcheck="false" aria-describedby="count">
@@ -73,10 +75,10 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-<script>const VERSION = '0.2.0';   // bump with every release (see README): the game compares it with the server's copy, and the ?v= on the files below must match</script>
-<script src="js/config.js?v=0.2.0"></script>
-<script src="js/game.js?v=0.2.0"></script>
-<script src="js/setup.js?v=0.2.0"></script>
-<script src="js/selfcheck.js?v=0.2.0"></script>
+<script>const VERSION = '0.2.1';   // bump with every release (see README): the game compares it with the server's copy, and the ?v= on the files below must match</script>
+<script src="js/config.js?v=0.2.1"></script>
+<script src="js/game.js?v=0.2.1"></script>
+<script src="js/setup.js?v=0.2.1"></script>
+<script src="js/selfcheck.js?v=0.2.1"></script>
 </body>
 </html>

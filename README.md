@@ -14,16 +14,16 @@ A one-time letter hunt that runs in the phone browser. One QR card per character
 - A soft chime plays as each letter lands and a short run of notes at the end (nothing plays while the iPhone's silent switch is on).
 - If a card will not scan, hold a finger on the row of letters for 2 seconds and the game counts the next card as found.
 
-The game text is in Hungarian. Progress is kept on the phone, so a reload or a dropped tab carries on where she was. To start over (for example after your own test run), open the game once with `?reset` added to the address.
+The game text is Hungarian or English, chosen on the setup page. Progress is kept on the phone, so a reload or a dropped tab carries on where she was. To start over (for example after your own test run), open the game once with `?reset` added to the address.
 
 ## Setting up your own hunt
 
 Everything is done on the `?setup` page. Open `index.html?setup` on a computer (served locally, or from wherever you host it).
 
-1. **Write the sentence.** Spaces split words; every other character (letters, numbers, `!`) is one hidden card, up to 30. Long sentences wrap onto one line per word on the phone.
+1. **Pick the language and write the sentence.** The language is for the game's own text (start screen, messages); write the hints in the same language. In the sentence, spaces split words; every other character (letters, numbers, `!`) is one hidden card, up to 30. Long sentences wrap onto one line per word on the phone.
 2. **Write the hints.** One box per step: the first leads to card 1, the last to the gift. The boxes follow the sentence as you change it. What you type is kept on that computer only.
 3. **Record the directions (optional).** With the cards hidden, open `?setup` on the iPhone. At each spot hold the phone flat, point it at the next card and tap **Record**. Steps you skip show no arrow.
-4. **Save the hunt.** Press **Copy** and paste the text over the whole of `js/config.js`, then deploy. The game does not change until you do. You can also edit `js/config.js` by hand: `SENTENCE`, `HINTS` and `BEARINGS`, with one more hint and direction than there are cards.
+4. **Save the hunt.** Press **Copy** and paste the text over the whole of `js/config.js`, then deploy. The game does not change until you do. You can also edit `js/config.js` by hand: `LANGUAGE` (`'hu'` or `'en'`), `SENTENCE`, `HINTS` and `BEARINGS`, with one more hint and direction than there are cards.
 5. **Print the cards.** Print the same page: one QR card per character, numbered in order, deep red on cream with a gold frame to match the statues. A black-and-white print should also scan (the reader only looks at brightness). To test without printing, **Full screen** under a card shows that one code large, ready to scan from the screen (tap to close), and **Download** saves it as `card-N.png`. The cards only carry their number (`mx1`, `mx2`, ...), so they work with any sentence of the same length, but do not mix cards from two hunts in one house.
 
 ## Requirements
@@ -38,7 +38,7 @@ Everything is done on the `?setup` page. Open `index.html?setup` on a computer (
 ```
 index.html       page markup and the version number
 css/style.css    all styling, including the setup page and print layout
-js/config.js     the only file to edit: sentence, hints, compass directions
+js/config.js     the only file to edit: language, sentence, hints, compass directions
 js/game.js       camera, QR reading, motion tracking, the statue, effects, game flow
 js/setup.js      the ?setup page: sentence, hint editor, compass recorder, printable cards
 js/selfcheck.js  the ?test self-check

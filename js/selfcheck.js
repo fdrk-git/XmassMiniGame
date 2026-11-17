@@ -34,10 +34,13 @@ if (location.search.includes('test')) {
   // config file text: pasting it back must give exactly the typed sentence, hints and directions, whatever they contain
   {
     const typed = ['plain', 'quote " and \\ backslash', 'two\nlines', '🎁 emoji', 'Árvíztűrő tükörfúrógép', "it's", '<\/script>', '', '  spaces  ', '\u2028 line sep'];
-    const want = ['Árvíz "tűrő" \\ <b>!', typed, [null, 12, 359]];
-    const back = new Function(configText(...want) + '; return [SENTENCE, HINTS, BEARINGS]')();
+    const want = ['en', 'Árvíz "tűrő" \\ <b>!', typed, [null, 12, 359]];
+    const back = new Function(configText(...want) + '; return [LANGUAGE, SENTENCE, HINTS, BEARINGS]')();
     console.assert(JSON.stringify(back) === JSON.stringify(want), 'config text round trip', back);
   }
+  // both languages have every text, and the page uses the configured one
+  console.assert(Object.keys(TEXTS.hu).join() === Object.keys(TEXTS.en).join() && T === TEXTS[LANGUAGE], 'game text complete in both languages');
+  console.assert(TEXTS.en.lead(1).startsWith('One letter is') && TEXTS.en.lead(9).startsWith('9 letters are'), 'English count reads right');
   // the sentence: words and cards, the lists that follow its length, and the slot size
   console.assert(JSON.stringify(wordsOf(' Merry  ő! ')) === '[["M","E","R","R","Y"],["Ő","!"]]', 'sentence split into words, upper case');
   console.assert(JSON.stringify(fitList(['a', 'b', 'gift'], 4, '')) === '["a","b","","","gift"]', 'list grows before the gift step');
